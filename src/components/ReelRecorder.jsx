@@ -1,12 +1,9 @@
 import VideoPlayer from "./VideoPlayer";
 import AudioRecorder from "./AudioRecorder";
-
-// import { useState, useRef } from "react"; --- IGNORE ---
 import { useState } from "react";
 
 export default function ReelRecorder() {
   const [isRunning, setIsRunning] = useState(false);
-  const [test, setTest] = useState("Hello");
 
   function handleToggle() {
     setIsRunning(!isRunning);
