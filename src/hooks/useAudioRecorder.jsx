@@ -8,7 +8,10 @@ const MIME_TYPE_CANDIDATES = [
 ];
 
 function getSupportedMimeType() {
-  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") {
+  if (
+    typeof window === "undefined" ||
+    typeof window.MediaRecorder === "undefined"
+  ) {
     return "";
   }
 
@@ -84,12 +87,24 @@ export function useAudioRecorder() {
   const startAttemptRef = useRef(0);
   const shouldStopAfterStartRef = useRef(false);
   const isMountedRef = useRef(true);
+  const isRecordingRef = useRef(false);
+  const isPreparingRef = useRef(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioMimeType, setAudioMimeType] = useState("");
   const [error, setError] = useState(null);
+
+  const setRecordingState = useCallback((nextValue) => {
+    isRecordingRef.current = nextValue;
+    setIsRecording(nextValue);
+  }, []);
+
+  const setPreparingState = useCallback((nextValue) => {
+    isPreparingRef.current = nextValue;
+    setIsPreparing(nextValue);
+  }, []);
 
   const clearAudioUrl = useCallback(() => {
     if (audioUrlRef.current) {
@@ -142,23 +157,27 @@ export function useAudioRecorder() {
     return stream;
   }, []);
 
-  const finalizeAudio = useCallback(() => {
-    const currentMimeType = mimeTypeRef.current || "audio/webm";
+  const finalizeAudio = useCallback(
+    (finalMimeType = "") => {
+      const currentMimeType =
+        finalMimeType || mimeTypeRef.current || "audio/webm";
 
-    clearAudioUrl();
+      clearAudioUrl();
 
-    if (!chunksRef.current.length) {
-      setAudioUrl(null);
-      return;
-    }
+      if (!chunksRef.current.length) {
+        setAudioUrl(null);
+        return;
+      }
 
-    const audioBlob = new Blob(chunksRef.current, { type: currentMimeType });
-    const nextAudioUrl = URL.createObjectURL(audioBlob);
+      const audioBlob = new Blob(chunksRef.current, { type: currentMimeType });
+      const nextAudioUrl = URL.createObjectURL(audioBlob);
 
-    chunksRef.current = [];
-    audioUrlRef.current = nextAudioUrl;
-    setAudioUrl(nextAudioUrl);
-  }, [clearAudioUrl]);
+      chunksRef.current = [];
+      audioUrlRef.current = nextAudioUrl;
+      setAudioUrl(nextAudioUrl);
+    },
+    [clearAudioUrl],
+  );
 
   const prepareRecording = useCallback(async () => {
     const stream = await ensureStream();
@@ -166,13 +185,46 @@ export function useAudioRecorder() {
     return stream;
   }, [ensureStream]);
 
-  const startRecording = useCallback(async () => {
-    if (isRecording || isPreparing) {
+  const stopRecording = useCallback(() => {
+    shouldStopAfterStartRef.current = true;
+
+    const mediaRecorder = mediaRecorderRef.current;
+
+    if (!mediaRecorder) {
+      setPreparingState(false);
+      setRecordingState(false);
+      releaseStream();
       return;
     }
 
-    if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") {
+    if (mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      return;
+    }
+
+    if (mediaRecorder.state === "inactive") {
+      resetRecorder();
+      releaseStream();
+      setPreparingState(false);
+      setRecordingState(false);
+    }
+  }, [releaseStream, resetRecorder, setPreparingState, setRecordingState]);
+
+  const startRecording = useCallback(async () => {
+    if (isRecordingRef.current || isPreparingRef.current) {
+      return;
+    }
+
+    if (
+      typeof window === "undefined" ||
+      typeof window.MediaRecorder === "undefined"
+    ) {
       setError("Ce navigateur ne prend pas en charge l'enregistrement audio.");
+      return;
+    }
+
+    const existingRecorder = mediaRecorderRef.current;
+    if (existingRecorder?.state === "recording") {
       return;
     }
 
@@ -180,7 +232,7 @@ export function useAudioRecorder() {
     startAttemptRef.current = attemptId;
     shouldStopAfterStartRef.current = false;
     setError(null);
-    setIsPreparing(true);
+    setPreparingState(true);
 
     try {
       const stream = await prepareRecording();
@@ -191,21 +243,23 @@ export function useAudioRecorder() {
         !isMountedRef.current
       ) {
         releaseStream();
-        setIsPreparing(false);
+        setPreparingState(false);
         return;
       }
 
-      const mimeType = getSupportedMimeType();
-      const resolvedMimeType = mimeType || "audio/webm";
-
-      mimeTypeRef.current = resolvedMimeType;
-      setAudioMimeType(resolvedMimeType);
+      const requestedMimeType = getSupportedMimeType();
       chunksRef.current = [];
 
-      const recorderOptions = mimeType ? { mimeType } : undefined;
+      const recorderOptions = requestedMimeType
+        ? { mimeType: requestedMimeType }
+        : undefined;
       const mediaRecorder = new MediaRecorder(stream, recorderOptions);
+      const resolvedMimeType =
+        mediaRecorder.mimeType || requestedMimeType || "audio/webm";
 
       mediaRecorderRef.current = mediaRecorder;
+      mimeTypeRef.current = resolvedMimeType;
+      setAudioMimeType(resolvedMimeType);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -216,6 +270,8 @@ export function useAudioRecorder() {
       mediaRecorder.onerror = (event) => {
         console.error("Erreur MediaRecorder :", event);
         setError("L'enregistrement audio a echoue.");
+        setPreparingState(false);
+        setRecordingState(false);
       };
 
       mediaRecorder.onstart = () => {
@@ -223,12 +279,12 @@ export function useAudioRecorder() {
           return;
         }
 
-        setIsPreparing(false);
-        setIsRecording(true);
+        setPreparingState(false);
+        setRecordingState(true);
       };
 
       mediaRecorder.onstop = () => {
-        finalizeAudio();
+        finalizeAudio(mediaRecorder.mimeType || resolvedMimeType);
         resetRecorder();
         releaseStream();
 
@@ -236,8 +292,8 @@ export function useAudioRecorder() {
           return;
         }
 
-        setIsPreparing(false);
-        setIsRecording(false);
+        setPreparingState(false);
+        setRecordingState(false);
       };
 
       mediaRecorder.start(250);
@@ -250,50 +306,19 @@ export function useAudioRecorder() {
         return;
       }
 
-      setIsPreparing(false);
-      setIsRecording(false);
+      setPreparingState(false);
+      setRecordingState(false);
       setAudioMimeType("");
       setError(getRecorderErrorMessage(recordingError));
     }
   }, [
     finalizeAudio,
-    isPreparing,
-    isRecording,
     prepareRecording,
     releaseStream,
     resetRecorder,
+    setPreparingState,
+    setRecordingState,
   ]);
-
-  const stopRecording = useCallback(() => {
-    shouldStopAfterStartRef.current = true;
-
-    const mediaRecorder = mediaRecorderRef.current;
-
-    if (!mediaRecorder) {
-      setIsPreparing(false);
-      setIsRecording(false);
-      releaseStream();
-      return;
-    }
-
-    if (mediaRecorder.state === "recording") {
-      try {
-        mediaRecorder.requestData();
-      } catch (requestDataError) {
-        console.debug("requestData indisponible :", requestDataError);
-      }
-
-      mediaRecorder.stop();
-      return;
-    }
-
-    if (mediaRecorder.state === "inactive") {
-      resetRecorder();
-      releaseStream();
-      setIsPreparing(false);
-      setIsRecording(false);
-    }
-  }, [releaseStream, resetRecorder]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -301,8 +326,25 @@ export function useAudioRecorder() {
     return () => {
       isMountedRef.current = false;
       shouldStopAfterStartRef.current = true;
-      resetRecorder();
-      releaseStream();
+
+      const mediaRecorder = mediaRecorderRef.current;
+
+      if (mediaRecorder?.state === "recording") {
+        try {
+          mediaRecorder.stop();
+        } catch (stopError) {
+          console.error(
+            "Impossible d'arreter proprement l'enregistrement :",
+            stopError,
+          );
+          resetRecorder();
+          releaseStream();
+        }
+      } else {
+        resetRecorder();
+        releaseStream();
+      }
+
       clearAudioUrl();
     };
   }, [clearAudioUrl, releaseStream, resetRecorder]);
