@@ -9,7 +9,7 @@ import { useState } from "react";
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
 
-  const steps = [<ReelChoice />, <ReelRecorder />, <ReelCustomisation />];
+  const steps = [<ReelChoice />, <ReelCustomisation />, <ReelRecorder />];
 
   const goToNextStep = () => {
     if (currentStep < steps.length - 1) {
