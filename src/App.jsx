@@ -9,7 +9,7 @@ import { useState } from "react";
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
 
-  const steps = [<ReelChoice />, <ReelRecorder />, <ReelCustomisation />];
+  const steps = [<ReelChoice />, <ReelCustomisation />, <ReelRecorder />];
 
   const goToNextStep = () => {
     if (currentStep < steps.length - 1) {
@@ -24,14 +24,14 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="p-5 h-screen flex flex-col gap-10">
       <Navbar
         currentStep={currentStep}
         onNext={goToNextStep}
         onPrevious={goToPreviousStep}
         stepNumber={steps.length}
       />
-      <div className="flex w-full items-center justify-center">
+      <div className="flex flex-1 w-full items-center justify-center">
         {steps[currentStep]}
       </div>
     </div>

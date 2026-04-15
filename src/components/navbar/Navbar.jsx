@@ -16,7 +16,7 @@ function Navbar({ currentStep, onNext, onPrevious, stepNumber }) {
   const isLastStep = currentStep === stepNumber - 1;
 
   return (
-    <nav className="flex flex-col gap-6">
+    <nav className="flex gap-6 justify-between items-center">
       <div className="flex items-center">
         {Array.from({ length: stepNumber }, (_, i) => (
           <React.Fragment key={i}>
@@ -42,7 +42,7 @@ function Navbar({ currentStep, onNext, onPrevious, stepNumber }) {
         <button
           onClick={onPrevious}
           disabled={isFirstStep}
-          className="rounded-full bg-blue-950 px-4 py-2 text-white transition-opacity cursor-pointer disabled:cursor-auto disabled:opacity-50"
+          className="rounded-full bg-blue-950 px-10 py-2 text-white transition-opacity cursor-pointer disabled:cursor-auto disabled:opacity-50"
         >
           Previous
         </button>
@@ -50,7 +50,7 @@ function Navbar({ currentStep, onNext, onPrevious, stepNumber }) {
         <button
           onClick={onNext}
           disabled={isLastStep}
-          className="rounded-full bg-blue-950 px-4 py-2 text-white transition-opacity cursor-pointer disabled:cursor-auto disabled:opacity-50"
+          className="rounded-full bg-blue-950 px-10 py-2 text-white transition-opacity cursor-pointer disabled:cursor-auto disabled:opacity-50"
         >
           Next
         </button>

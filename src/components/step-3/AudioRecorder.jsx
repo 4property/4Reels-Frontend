@@ -1,26 +1,12 @@
-import React, { useEffect } from "react";
-import { useAudioRecorder } from "../../hooks/useAudioRecorder";
+import React from "react";
 
-export default function AudioRecorder({ isRunning }) {
-  const {
-    audioExtension,
-    audioUrl,
-    error,
-    isPreparing,
-    isRecording,
-    startRecording,
-    stopRecording,
-  } = useAudioRecorder();
-
-  useEffect(() => {
-    if (isRunning) {
-      startRecording();
-      return;
-    }
-
-    stopRecording();
-  }, [isRunning, startRecording, stopRecording]);
-
+export default function AudioRecorder({
+  audioExtension,
+  audioUrl,
+  error,
+  isPreparing,
+  isRecording,
+}) {
   return (
     <div>
       <h1>Audio recorder</h1>

@@ -40,22 +40,22 @@ function stopStream(stream) {
 
 function getRecorderErrorMessage(error) {
   if (error?.message === "MEDIA_DEVICES_UNSUPPORTED") {
-    return "Le navigateur ne donne pas acces au microphone.";
+    return "This browser does not support audio recording.";
   }
 
   if (error?.name === "NotAllowedError") {
-    return "L'acces au microphone a ete refuse.";
+    return "Microphone access was denied. Please allow access and try again.";
   }
 
   if (error?.name === "NotFoundError") {
-    return "Aucun microphone n'a ete detecte.";
+    return "No microphone was detected.";
   }
 
   if (error?.name === "NotReadableError") {
-    return "Le microphone est deja utilise par une autre application.";
+    return "The microphone is already in use by another application.";
   }
 
-  return "Impossible d'enregistrer le son sur ce navigateur.";
+  return "Impossible to start audio recording. Please check your microphone and try again.";
 }
 
 function waitForTrackToBeReady(stream) {
@@ -219,7 +219,7 @@ export function useAudioRecorder() {
       typeof window === "undefined" ||
       typeof window.MediaRecorder === "undefined"
     ) {
-      setError("Ce navigateur ne prend pas en charge l'enregistrement audio.");
+      setError("This browser does not support audio recording.");
       return;
     }
 
@@ -268,8 +268,8 @@ export function useAudioRecorder() {
       };
 
       mediaRecorder.onerror = (event) => {
-        console.error("Erreur MediaRecorder :", event);
-        setError("L'enregistrement audio a echoue.");
+        console.error("MediaRecorder error:", event);
+        setError("An error occurred during recording. Please try again.");
         setPreparingState(false);
         setRecordingState(false);
       };
@@ -298,7 +298,7 @@ export function useAudioRecorder() {
 
       mediaRecorder.start(250);
     } catch (recordingError) {
-      console.error("Erreur micro :", recordingError);
+      console.error("Mic error:", recordingError);
       releaseStream();
       resetRecorder();
 
@@ -334,7 +334,7 @@ export function useAudioRecorder() {
           mediaRecorder.stop();
         } catch (stopError) {
           console.error(
-            "Impossible d'arreter proprement l'enregistrement :",
+            "Error stopping MediaRecorder during cleanup:",
             stopError,
           );
           resetRecorder();
