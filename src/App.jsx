@@ -24,14 +24,14 @@ function App() {
   };
 
   return (
-    <div className="p-5">
+    <div className="p-5 h-screen flex flex-col gap-10">
       <Navbar
         currentStep={currentStep}
         onNext={goToNextStep}
         onPrevious={goToPreviousStep}
         stepNumber={steps.length}
       />
-      <div className="flex w-full items-center justify-center">
+      <div className="flex flex-1 w-full items-center justify-center">
         {steps[currentStep]}
       </div>
     </div>
