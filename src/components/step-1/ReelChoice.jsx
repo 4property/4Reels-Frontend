@@ -17,14 +17,26 @@ export default function ReelChoice() {
 
   return (
     <>
-      <div className="">Reelchoice</div>
-      <ul className="w-full h-auto flex  gap-4 flex-wrap">
-        {videoData.map((video) => (
-          <li className="w-40" key={video.id}>
-            <video src={video.src} title={video.title} />
-          </li>
-        ))}
-      </ul>
+      <div className="w-3/5">
+        {/* <div className="">Reelchoice</div> */}
+        <h1>My Reels and Posters</h1>
+        <h2>Scheduled videos and posters:</h2>
+        <div className="w-full max-h-140 overflow-y-auto border border-slate-200 rounded-xl p-4 m-4">
+          <ul className="w-full h-auto flex gap-4 flex-wrap px-2 py-1">
+            {videoData.map((video) => (
+              <li className="w-40" key={video.id}>
+                <video src={video.src} title={video.title} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="w-2/5">
+        <h2 className="p-2 m-4">Current Reel/Poster:</h2>
+        <div className="w-full h-auto border border-slate-200 rounded-xl p-2 m-4">
+          <video className="w-50" src="src/assets/video.mp4" title="Current Reel" controls />
+        </div>
+      </div>
     </>
 
   );
