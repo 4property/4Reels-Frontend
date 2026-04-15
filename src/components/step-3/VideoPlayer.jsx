@@ -15,7 +15,7 @@ export default function VideoPlayer({ isRunning }) {
     }
   }, [isRunning]);
   return (
-    <video ref={videoRef} className="h-full w-auto">
+    <video ref={videoRef} className="h-full w-auto rounded-3xl">
       <source src={video} type="video/mp4" />
     </video>
   );

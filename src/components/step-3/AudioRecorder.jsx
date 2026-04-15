@@ -8,7 +8,7 @@ export default function AudioRecorder({
   isRecording,
 }) {
   return (
-    <div>
+    <div className="w-100">
       <h1>Audio recorder</h1>
       <p>
         {isPreparing && "Starting microphone..."}
