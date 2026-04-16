@@ -1,4 +1,5 @@
 import React,{ useState } from "react";
+import Button from "../utils/Button";
 
 export default function ReelCustomisation() {
   const mediaData = [
@@ -22,7 +23,23 @@ export default function ReelCustomisation() {
   ];
 
   const [isToggled1, setIsToggled1] = useState(false);
+  const [droppedItem, setDroppedItem] = useState(null);
+  const [caption, setCaption] = React.useState("");
+  const handleCaptionChange = (e) => {
+    setCaption(e.target.value);
+  }
 
+  // started implementing drag and drop functionality, but stopped, because we need to connect to server for it to work, doesnt make sense to try doing it beforehand, as we would need to change it anyway when connecting to the server
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+  function handleDrop(e) {
+    e.preventDefault();
+
+    const item = Array.from(e.dataTransfer.files);
+    setDroppedItem(item);
+    // {item.type === "video/mp4" ? (mediaData.):()}
+  }
   return (
     <div className="flex">
       <div className="flex flex-col gap-4 *:gap-4">
@@ -34,7 +51,7 @@ export default function ReelCustomisation() {
               {mediaData.map((media, index) => (
                 <div
                   key={media.id}
-                  className={`rounded-xl overflow-hidden hover:z-100 ${index !== 0 ? "-ml-40" : ""}`}
+                  className={`rounded-xl cursor-pointer overflow-hidden hover:z-100 hover:duration-200 hover:scale-105 ${index !== 0 ? "-ml-40" : ""}`}
                   // style={{ zIndex: index }}
                 >
                   <video src={media.src} className=" object-cover" />
@@ -42,7 +59,7 @@ export default function ReelCustomisation() {
               ))}
             </div>
           </div>
-          <div className="w-full flex-1 p-2 flex border border-slate-200 rounded-xl">
+          <div className="w-full flex-1 p-2 flex border border-slate-200 rounded-xl" onDragOver={handleDragOver} onDrop={handleDrop}>
             test
           </div>
           {/* The div for the media player */}
@@ -76,7 +93,13 @@ export default function ReelCustomisation() {
         <div className=" h-3/5 p-2 ml-4 mt-10 flex flex-col border border-slate-200 rounded-xl">
           <h2 className="ml-4">Change Captions:</h2>
           <div className="w-full h-full flex border border-slate-200 rounded-xl">
-            
+            <textarea
+              value={caption}
+              onChange={handleCaptionChange}
+              disabled={isToggled1}
+              placeholder={isToggled1 ? "Speech-to-text is active" : "Enter caption here..."}
+              className="w-full h-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-950 disabled:bg-gray-100"
+            />
           </div>
         </div>
         <label className="inline-flex items-center cursor-pointer p-2 m-4 min-w-60">
@@ -101,6 +124,11 @@ export default function ReelCustomisation() {
             ></span>
           </div>
         </label>
+        <div className="ml-4 mt-6 flex justify-center">
+          <Button>
+            Set default Configuration
+          </Button>
+        </div>
       </div>
     </div>
   );
