@@ -1,11 +1,14 @@
-import video from "../../assets/video.mp4";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 
-export default function VideoPlayer({ isRunning }) {
+import video from "../../assets/video.mp4";
+
+const VideoPlayer = memo(function VideoPlayer({ isRunning }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      return;
+    }
 
     if (isRunning) {
       videoRef.current.play();
@@ -14,9 +17,12 @@ export default function VideoPlayer({ isRunning }) {
       videoRef.current.currentTime = 0;
     }
   }, [isRunning]);
+
   return (
-    <video ref={videoRef} className="w-100 h-auto">
+    <video ref={videoRef} className="h-full w-auto rounded-3xl">
       <source src={video} type="video/mp4" />
     </video>
   );
-}
+});
+
+export default VideoPlayer;
