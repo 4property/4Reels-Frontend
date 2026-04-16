@@ -6,6 +6,7 @@ import ReelRecorder from "./components/step-3/ReelRecorder";
 import SocialEditPage from "./components/step-4/SocialEditPage";
 
 import { useState } from "react";
+import Preview from "./components/step-5/Preview";
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -15,6 +16,7 @@ function App() {
     <ReelCustomisation />,
     <ReelRecorder />,
     <SocialEditPage />,
+    <Preview />,
   ];
 
   const goToNextStep = () => {
