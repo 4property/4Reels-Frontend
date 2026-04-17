@@ -110,6 +110,13 @@ export default function ReelCustomisation() {
     setDraggedIndex(null);
   }
 
+  const [selectedAudio, setSelectedAudio] = useState(null);
+  function handleClickAudio(audio) {
+    setSelectedAudio(audio);
+    // alert(`Selected audio: ${audio.title}`);
+
+  }
+
   return (
     <div className="flex">
       <div className="flex flex-col gap-4 *:gap-4">
@@ -140,7 +147,7 @@ export default function ReelCustomisation() {
               <GoPlusCircle />
             </span>
           </div>
-          {/* The div for the media player */}
+          {/* The div for the audio player */}
         </div>
         <div className="flex">
           <div className="w-full flex-2 p-2 flex flex-col items-center border border-slate-200 rounded-xl">
@@ -148,12 +155,13 @@ export default function ReelCustomisation() {
             <div className="w-full max-h-50 overflow-y-auto border:hidden">
               <ul className="w-full h-auto flex gap-2 flex-col justify-center px-2 py-2">
                 {audioData.map((media) => (
-                  <li className="w-full">
+                  <li className={`w-full hover:border-blue-950 hover:bg-slate-50 border rounded-lg ${selectedAudio?.id === media.id ? "border-blue-950 bg-slate-50" : "border-transparent"}`} onClick={() => handleClickAudio(media)}>
                     <audio controls className="w-full">
                       <source
                         src={media.src}
                         title={media.title}
                         type="audio/mpeg"
+                        
                       />
                       Your browser does not support the audio element.
                     </audio>
