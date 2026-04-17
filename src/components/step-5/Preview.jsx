@@ -12,23 +12,23 @@ export default function Preview() {
         <div className="w-100">
           <video src={videoFile} controls className="rounded-xl" />
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col items-end justify-center gap-4">
           <div className="w-100 h-auto rounded-xl bg-gray-200 flex flex-col items-center justify-center">
             <p className="text-gray-500 flex">Preview Area</p>
           </div>
-          <Button className="flex flex-row items-center justify-center">
+          <Button >
               <span className="flex items-center gap-2">
                 Upload now
                 <MdOutlineFileUpload />
               </span>
-            </Button>
-            <Button className="flex">
-              <span className="flex items-center gap-2">
-                Schedule upload
-                <FiClock />
-              </span>
-            </Button>
-          </div>
+          </Button>
+          <Button >
+            <span className="flex items-center gap-2">
+              <p >Schedule upload</p>
+              <FiClock />
+            </span>
+          </Button>
+        </div>
       </div>
     </div>
   );
