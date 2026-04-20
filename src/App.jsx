@@ -10,18 +10,27 @@ import { useState } from "react";
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
 
+  //functionality of the use default reel toggle switch, if you have a better idea where to put it change it
+  const [isToggledDefaultReel, setIsToggledDefaultReel] = useState(false);
+
+
   const goToStep = (stepIndex) => {
     setCurrentStep(stepIndex);
   };
 
   const steps = [
-    <ReelChoice />,
+    <ReelChoice isToggledDefaultReel={isToggledDefaultReel} setIsToggledDefaultReel={setIsToggledDefaultReel} />,
     <ReelCustomisation />,
     <ReelRecorder />,
     <SocialEditPage />,
   ];
 
   const goToNextStep = () => {
+    // Logic for skipping steps 1-4 if the default reel toggle is on, but as step 5 is doesn't exist on this branch, it hast o be commented out for the moment
+    // if(isToggledDefaultReel){
+    //   setCurrentStep(4);
+    //   return
+    // }
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
