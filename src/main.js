@@ -6,6 +6,7 @@ const tabs = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'music', label: 'Music' },
   { id: 'reel', label: 'Reel Customization' },
+  { id: 'formats', label: 'Formats' },
   { id: 'poster', label: 'Poster' },
   { id: 'voiceover', label: 'Voiceover' },
   { id: 'social', label: 'Social Networks' },
@@ -13,6 +14,57 @@ const tabs = [
 ]
 
 const networks = ['instagram', 'facebook', 'tiktok', 'youtube']
+
+const publishModes = [
+  { id: 'manual', label: 'Manual approval', shortLabel: 'Manual approval' },
+  { id: 'auto', label: 'Auto publish', shortLabel: 'Auto publish' },
+  { id: 'scheduled', label: 'Schedule with 6h delay', shortLabel: 'Schedule +6h' },
+]
+
+const currencies = [
+  { id: 'EUR', label: 'Euros', locale: 'en-IE' },
+  { id: 'USD', label: 'Dollars', locale: 'en-US' },
+  { id: 'GBP', label: 'Pounds', locale: 'en-GB' },
+]
+
+const subtitleColors = [
+  { id: 'light', label: 'White', value: '#ffffff' },
+  { id: 'ink', label: 'Ink', value: '#142033' },
+  { id: 'mint', label: 'Mint', value: '#0f766e' },
+  { id: 'gold', label: 'Gold', value: '#b36b16' },
+]
+
+const subtitleBackdrops = [
+  { id: 'dark', label: 'Dark glass', value: 'rgba(24, 34, 48, 0.78)' },
+  { id: 'light', label: 'Light card', value: 'rgba(255, 255, 255, 0.92)' },
+  { id: 'brand', label: 'Brand blue', value: 'rgba(33, 86, 199, 0.88)' },
+]
+
+const subtitleSizes = [
+  { id: 'small', label: 'Small', value: '0.84rem' },
+  { id: 'medium', label: 'Medium', value: '0.96rem' },
+  { id: 'large', label: 'Large', value: '1.08rem' },
+]
+
+const aspectRatios = [
+  { id: '9:16', label: 'Vertical 9:16', value: '9 / 16' },
+  { id: '1:1', label: 'Square 1:1', value: '1 / 1' },
+  { id: '16:9', label: 'Landscape 16:9', value: '16 / 9' },
+]
+
+const ctaOptions = [
+  { id: 'viewing', label: 'Book a viewing', copy: 'Book a viewing today' },
+  { id: 'brochure', label: 'Download brochure', copy: 'Download the brochure' },
+  { id: 'whatsapp', label: 'WhatsApp CTA', copy: 'Message the team on WhatsApp' },
+]
+
+const languageOptions = ['English', 'Spanish', 'French']
+
+const dateFormats = [
+  { id: 'ddmmyyyy', label: 'DD/MM/YYYY' },
+  { id: 'mmddyyyy', label: 'MM/DD/YYYY' },
+  { id: 'long', label: '20 Apr 2026' },
+]
 
 const photoAssets = {
   exterior: '/selected_photos/05_3483-2.jpg',
@@ -33,6 +85,7 @@ let recordingTimer = null
 const state = {
   activeTab: 'dashboard',
   publishMode: 'manual',
+  scheduledDelayHours: 6,
   selectedJobId: 'job-1',
   selectedSlideId: 'slide-2',
   selectedTrackId: 'track-1',
@@ -49,19 +102,30 @@ const state = {
   posterVideoName: '',
   posterVideoUrl: '',
   voiceNotes: 'Keep the tone warm, local and easy to understand.',
+  formatSettings: {
+    currency: 'GBP',
+    subtitleColor: 'light',
+    subtitleBackdrop: 'dark',
+    subtitleSize: 'medium',
+    aspectRatio: '9:16',
+    language: 'English',
+    dateFormat: 'ddmmyyyy',
+    watermark: 'Anna Case Realty',
+    cta: 'viewing',
+  },
   fields: {
     address: '12 Cranford Court',
     area: 'West London',
-    price: 'GBP 325,000',
+    price: '325000',
     agent: 'Anna Case',
   },
   socialTemplates: {
-    instagram: 'Just listed at {address}. {price}. DM {agent} to arrange a viewing.',
+    instagram: 'Just listed at {address}. {price}. {cta}. DM {agent} to arrange a viewing.',
     facebook:
-      'New to market in {area}. {address} is now live for {price}. Contact {agent} for the brochure.',
+      'New to market in {area}. {address} is now live for {price}. {cta}. Contact {agent} for the brochure.',
     tiktok: 'Fresh listing alert at {address}. Comment TOUR and {agent} will reach out.',
     youtube:
-      'Full walkthrough for {address} in {area}. Enquire with {agent} to book a viewing.',
+      'Full walkthrough for {address} in {area}. Enquire with {agent} to book a viewing on {today}.',
   },
   recordingSupported:
     typeof window !== 'undefined' &&
@@ -170,10 +234,6 @@ function formatTime(seconds) {
   return `${minutes}:${secs}`
 }
 
-function countJobs(status) {
-  return state.jobs.filter((job) => job.status === status).length
-}
-
 function getJob() {
   return state.jobs.find((job) => job.id === state.selectedJobId) || state.jobs[0]
 }
@@ -198,6 +258,126 @@ function getLikedTracks() {
   return state.tracks.filter((track) => track.liked)
 }
 
+function getPublishMode(mode = state.publishMode) {
+  return publishModes.find((item) => item.id === mode) || publishModes[0]
+}
+
+function getCurrencyOption() {
+  return currencies.find((item) => item.id === state.formatSettings.currency) || currencies[0]
+}
+
+function getSubtitleColorOption() {
+  return subtitleColors.find((item) => item.id === state.formatSettings.subtitleColor) || subtitleColors[0]
+}
+
+function getSubtitleBackdropOption() {
+  return subtitleBackdrops.find((item) => item.id === state.formatSettings.subtitleBackdrop) || subtitleBackdrops[0]
+}
+
+function getSubtitleSizeOption() {
+  return subtitleSizes.find((item) => item.id === state.formatSettings.subtitleSize) || subtitleSizes[1]
+}
+
+function getAspectRatioOption() {
+  return aspectRatios.find((item) => item.id === state.formatSettings.aspectRatio) || aspectRatios[0]
+}
+
+function getDateFormatOption() {
+  return dateFormats.find((item) => item.id === state.formatSettings.dateFormat) || dateFormats[0]
+}
+
+function getCtaOption() {
+  return ctaOptions.find((item) => item.id === state.formatSettings.cta) || ctaOptions[0]
+}
+
+function getPublishModeLabel(mode = state.publishMode) {
+  return getPublishMode(mode).label
+}
+
+function getPublishActionLabel() {
+  if (state.publishMode === 'auto') return 'Publish automatically'
+  if (state.publishMode === 'scheduled') return `Schedule in ${state.scheduledDelayHours} hours`
+  return 'Send to approval'
+}
+
+function getScheduledDate() {
+  return new Date(Date.now() + state.scheduledDelayHours * 60 * 60 * 1000)
+}
+
+function formatScheduledTime() {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(getScheduledDate())
+}
+
+function formatPreviewDate(date = new Date()) {
+  if (state.formatSettings.dateFormat === 'mmddyyyy') {
+    return new Intl.DateTimeFormat('en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date)
+  }
+
+  if (state.formatSettings.dateFormat === 'long') {
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date)
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function formatPrice(value) {
+  const normalized = String(value ?? '').replace(/[^0-9.]/g, '')
+  const amount = Number.parseFloat(normalized)
+
+  if (!Number.isFinite(amount)) return String(value ?? '')
+
+  const currency = getCurrencyOption()
+  return new Intl.NumberFormat(currency.locale, {
+    style: 'currency',
+    currency: currency.id,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+function getResolvedFields() {
+  return {
+    ...state.fields,
+    price: formatPrice(state.fields.price),
+    cta: getCtaOption().copy,
+    today: formatPreviewDate(),
+    watermark: state.formatSettings.watermark || 'Anna Case Realty',
+  }
+}
+
+function getCaptionStyle() {
+  return [
+    `--caption-text:${getSubtitleColorOption().value}`,
+    `--caption-bg:${getSubtitleBackdropOption().value}`,
+    `--caption-size:${getSubtitleSizeOption().value}`,
+  ].join(';')
+}
+
+function getPreviewStyle() {
+  return `--preview-aspect-ratio:${getAspectRatioOption().value}`
+}
+
+function renderWatermark() {
+  if (!state.formatSettings.watermark) return ''
+  return `<div class="preview-watermark" data-bind="watermark-text">${escapeHtml(state.formatSettings.watermark)}</div>`
+}
+
 function syncState() {
   if (!state.jobs.some((job) => job.id === state.selectedJobId)) state.selectedJobId = state.jobs[0]?.id || ''
   if (!state.slides.some((slide) => slide.id === state.selectedSlideId)) state.selectedSlideId = state.slides[0]?.id || ''
@@ -207,11 +387,19 @@ function syncState() {
 }
 
 function resolveTemplate(template) {
-  return template.replace(/\{(\w+)\}/g, (_, token) => state.fields[token] || `{${token}}`)
+  const fields = getResolvedFields()
+  return template.replace(/\{(\w+)\}/g, (_, token) => fields[token] || `{${token}}`)
 }
 
 function renderBadge(status) {
-  const tone = status === 'Published' ? 'success' : status === 'Needs approval' ? 'warning' : 'neutral'
+  const tone =
+    status === 'Published'
+      ? 'success'
+      : status === 'Needs approval'
+        ? 'warning'
+        : status === 'Scheduled'
+          ? 'info'
+          : 'neutral'
   return `<span class="badge badge-${tone}">${escapeHtml(status)}</span>`
 }
 
@@ -222,30 +410,22 @@ function renderMedia(item, className = 'media-frame') {
   return `<div class="${className}"><img src="${escapeHtml(item.previewUrl)}" alt="${escapeHtml(item.name)}" /></div>`
 }
 
-function renderTopbar() {
+function renderHeader() {
   return `
-    <header class="topbar">
-      <div class="title-group">
-        <p class="eyebrow">GHL Listing CRM</p>
-        <h1>Estate agent content workflow</h1>
-        <p class="subtle-copy">Manage reels, posters, approvals, voiceover and social publishing from one clean workspace.</p>
-      </div>
+    <header class="app-header">
+      ${renderTabs()}
       <div class="mode-switch">
-        <button class="mode-button${state.publishMode === 'manual' ? ' is-active' : ''}" type="button" data-action="set-mode" data-mode="manual">Manual approval</button>
-        <button class="mode-button${state.publishMode === 'auto' ? ' is-active' : ''}" type="button" data-action="set-mode" data-mode="auto">Auto publish</button>
+        ${publishModes
+          .map(
+            (mode) => `
+              <button class="mode-button${state.publishMode === mode.id ? ' is-active' : ''}" type="button" data-action="set-mode" data-mode="${mode.id}">
+                ${escapeHtml(mode.shortLabel)}
+              </button>
+            `,
+          )
+          .join('')}
       </div>
     </header>
-  `
-}
-
-function renderStats() {
-  return `
-    <section class="stats-grid">
-      <article class="stat-card"><span>Needs approval</span><strong>${countJobs('Needs approval')}</strong></article>
-      <article class="stat-card"><span>Drafts</span><strong>${countJobs('Draft')}</strong></article>
-      <article class="stat-card"><span>Published</span><strong>${countJobs('Published')}</strong></article>
-      <article class="stat-card"><span>Default music</span><strong>${escapeHtml(getDefaultTrack().name)}</strong></article>
-    </section>
   `
 }
 
@@ -326,9 +506,11 @@ function renderDashboard() {
         </div>
 
         <div class="summary-list">
-          <div class="summary-row"><span>Publish mode</span><strong data-bind="publish-mode">${escapeHtml(state.publishMode === 'auto' ? 'Auto publish' : 'Manual approval')}</strong></div>
+          <div class="summary-row"><span>Publish mode</span><strong data-bind="publish-mode">${escapeHtml(getPublishModeLabel())}</strong></div>
+          ${state.publishMode === 'scheduled' ? `<div class="summary-row"><span>Scheduled for</span><strong>${escapeHtml(formatScheduledTime())}</strong></div>` : ''}
           <div class="summary-row"><span>Default slide</span><strong>${escapeHtml(getDefaultSlide().name)}</strong></div>
           <div class="summary-row"><span>Default music</span><strong>${escapeHtml(getDefaultTrack().name)}</strong></div>
+          <div class="summary-row"><span>Price format</span><strong data-bind="formatted-price">${escapeHtml(formatPrice(state.fields.price))}</strong></div>
           <div class="summary-row"><span>Captions</span><strong>${escapeHtml(state.captionsHidden ? 'Removed by default' : 'Visible')}</strong></div>
         </div>
       </article>
@@ -475,9 +657,10 @@ function renderReel() {
           </button>
         </div>
 
-        <div class="phone-preview">
+        <div class="phone-preview" style="${getPreviewStyle()}">
           ${renderMedia(slide, 'phone-frame')}
-          ${state.captionsHidden ? '' : `<div class="caption-overlay" data-bind="slide-caption">${escapeHtml(slide.caption)}</div>`}
+          ${renderWatermark()}
+          ${state.captionsHidden ? '' : `<div class="caption-overlay" style="${getCaptionStyle()}" data-bind="slide-caption">${escapeHtml(slide.caption)}</div>`}
         </div>
 
         <label class="field">
@@ -489,6 +672,168 @@ function renderReel() {
           <div class="summary-row"><span>Type</span><strong>${escapeHtml(slide.type)}</strong></div>
           <div class="summary-row"><span>Default slide</span><strong>${escapeHtml(getDefaultSlide().name)}</strong></div>
           <div class="summary-row"><span>Extra media position</span><strong>${escapeHtml(state.reelEndPosition)}</strong></div>
+          <div class="summary-row"><span>Aspect ratio</span><strong>${escapeHtml(getAspectRatioOption().label)}</strong></div>
+          <div class="summary-row"><span>Caption theme</span><strong>${escapeHtml(`${getSubtitleColorOption().label} / ${getSubtitleBackdropOption().label}`)}</strong></div>
+        </div>
+      </article>
+    </section>
+  `
+}
+
+function renderFormats() {
+  const slide = getSlide()
+  const formattedPrice = formatPrice(state.fields.price)
+
+  return `
+    <section class="page-grid">
+      <article class="panel span-2">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Output formats</p>
+            <h2>Currency, subtitles and export behaviour</h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field-group">
+            <p class="eyebrow">Currency</p>
+            <div class="segmented">
+              ${currencies
+                .map(
+                  (currency) => `
+                    <button class="segment-button${state.formatSettings.currency === currency.id ? ' is-active' : ''}" type="button" data-action="set-currency" data-currency="${currency.id}">
+                      ${escapeHtml(currency.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Subtitle color</p>
+            <div class="segmented">
+              ${subtitleColors
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.subtitleColor === option.id ? ' is-active' : ''}" type="button" data-action="set-subtitle-color" data-subtitle-color="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Subtitle backdrop</p>
+            <div class="segmented">
+              ${subtitleBackdrops
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.subtitleBackdrop === option.id ? ' is-active' : ''}" type="button" data-action="set-subtitle-backdrop" data-subtitle-backdrop="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Subtitle size</p>
+            <div class="segmented">
+              ${subtitleSizes
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.subtitleSize === option.id ? ' is-active' : ''}" type="button" data-action="set-subtitle-size" data-subtitle-size="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+          </div>
+
+          <div class="field-group">
+            <p class="eyebrow">Aspect ratio</p>
+            <div class="segmented">
+              ${aspectRatios
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.aspectRatio === option.id ? ' is-active' : ''}" type="button" data-action="set-aspect-ratio" data-aspect-ratio="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Call to action</p>
+            <div class="segmented">
+              ${ctaOptions
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.cta === option.id ? ' is-active' : ''}" type="button" data-action="set-cta" data-cta="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Language</p>
+            <div class="segmented">
+              ${languageOptions
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.language === option ? ' is-active' : ''}" type="button" data-action="set-language" data-language="${option}">
+                      ${escapeHtml(option)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <p class="eyebrow">Date format</p>
+            <div class="segmented">
+              ${dateFormats
+                .map(
+                  (option) => `
+                    <button class="segment-button${state.formatSettings.dateFormat === option.id ? ' is-active' : ''}" type="button" data-action="set-date-format" data-date-format="${option.id}">
+                      ${escapeHtml(option.label)}
+                    </button>
+                  `,
+                )
+                .join('')}
+            </div>
+
+            <label class="field">
+              <span>Watermark</span>
+              <input type="text" value="${escapeHtml(state.formatSettings.watermark)}" data-input="watermark" />
+            </label>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Live preview</p>
+            <h2>${escapeHtml(formattedPrice)}</h2>
+          </div>
+        </div>
+
+        <div class="phone-preview format-preview" style="${getPreviewStyle()}">
+          ${renderMedia(slide, 'phone-frame')}
+          ${renderWatermark()}
+          <div class="caption-overlay" style="${getCaptionStyle()}" data-bind="format-caption">${escapeHtml(`${slide.caption} - ${getCtaOption().copy}`)}</div>
+        </div>
+
+        <div class="summary-list">
+          <div class="summary-row"><span>Formatted price</span><strong data-bind="formatted-price">${escapeHtml(formattedPrice)}</strong></div>
+          <div class="summary-row"><span>Subtitle style</span><strong>${escapeHtml(`${getSubtitleColorOption().label} / ${getSubtitleBackdropOption().label}`)}</strong></div>
+          <div class="summary-row"><span>Aspect ratio</span><strong>${escapeHtml(getAspectRatioOption().label)}</strong></div>
+          <div class="summary-row"><span>Language</span><strong>${escapeHtml(state.formatSettings.language)}</strong></div>
+          <div class="summary-row"><span>Date token</span><strong data-bind="format-date">${escapeHtml(formatPreviewDate())}</strong></div>
+        </div>
+
+        <div class="text-preview compact">
+          ${escapeHtml(`Tokens: {price} {cta} {today} {watermark}\nExample: ${formattedPrice} - ${getCtaOption().copy} - ${formatPreviewDate()}`)}
         </div>
       </article>
     </section>
@@ -578,9 +923,10 @@ function renderVoiceover() {
           </div>
         </div>
 
-        <div class="phone-preview">
+        <div class="phone-preview" style="${getPreviewStyle()}">
           ${renderMedia(slide, 'phone-frame')}
-          <div class="caption-overlay secondary">Record while the preview is playing.</div>
+          ${renderWatermark()}
+          <div class="caption-overlay" style="${getCaptionStyle()}">Record while the preview is playing.</div>
         </div>
       </article>
 
@@ -639,6 +985,7 @@ function renderSocial() {
           <label class="field">
             <span>Template</span>
             <textarea rows="6" data-input="social-template">${escapeHtml(state.socialTemplates[state.selectedNetwork])}</textarea>
+            <small class="field-note">Use tokens like {price}, {cta}, {today}, {watermark}, {address}, {area} and {agent}.</small>
           </label>
 
           <div class="field-group">
@@ -653,7 +1000,7 @@ function renderSocial() {
                 <input type="text" value="${escapeHtml(state.fields.area)}" data-input="field" data-field-name="area" />
               </label>
               <label class="field">
-                <span>Price</span>
+                <span>Price amount</span>
                 <input type="text" value="${escapeHtml(state.fields.price)}" data-input="field" data-field-name="price" />
               </label>
               <label class="field">
@@ -674,6 +1021,12 @@ function renderSocial() {
         </div>
 
         <div class="text-preview" data-bind="social-preview">${escapeHtml(resolved)}</div>
+
+        <div class="summary-list preview-meta">
+          <div class="summary-row"><span>Currency preview</span><strong data-bind="formatted-price">${escapeHtml(formatPrice(state.fields.price))}</strong></div>
+          <div class="summary-row"><span>CTA token</span><strong>${escapeHtml(getCtaOption().copy)}</strong></div>
+          <div class="summary-row"><span>Date token</span><strong data-bind="format-date">${escapeHtml(formatPreviewDate())}</strong></div>
+        </div>
       </article>
     </section>
   `
@@ -681,7 +1034,7 @@ function renderSocial() {
 
 function renderSummary() {
   const job = getJob()
-  const publishLabel = state.publishMode === 'auto' ? 'Publish automatically' : 'Send to approval'
+  const publishLabel = getPublishActionLabel()
 
   return `
     <section class="page-grid">
@@ -696,10 +1049,14 @@ function renderSummary() {
 
         <div class="summary-columns">
           <div class="summary-list">
-            <div class="summary-row"><span>Publish mode</span><strong>${escapeHtml(state.publishMode === 'auto' ? 'Auto publish' : 'Manual approval')}</strong></div>
+            <div class="summary-row"><span>Publish mode</span><strong>${escapeHtml(getPublishModeLabel())}</strong></div>
+            ${state.publishMode === 'scheduled' ? `<div class="summary-row"><span>Scheduled for</span><strong>${escapeHtml(formatScheduledTime())}</strong></div>` : ''}
             <div class="summary-row"><span>Default slide</span><strong>${escapeHtml(getDefaultSlide().name)}</strong></div>
             <div class="summary-row"><span>Default track</span><strong>${escapeHtml(getDefaultTrack().name)}</strong></div>
+            <div class="summary-row"><span>Price format</span><strong data-bind="formatted-price">${escapeHtml(formatPrice(state.fields.price))}</strong></div>
             <div class="summary-row"><span>Captions</span><strong>${escapeHtml(state.captionsHidden ? 'Removed' : 'Visible')}</strong></div>
+            <div class="summary-row"><span>Subtitle theme</span><strong>${escapeHtml(`${getSubtitleColorOption().label} / ${getSubtitleBackdropOption().label}`)}</strong></div>
+            <div class="summary-row"><span>Watermark</span><strong data-bind="watermark-text">${escapeHtml(state.formatSettings.watermark || 'Hidden')}</strong></div>
             <div class="summary-row"><span>Poster banner</span><strong>${escapeHtml(state.posterText)}</strong></div>
             <div class="summary-row"><span>Voiceover</span><strong>${escapeHtml(state.recordingUrl ? 'Ready' : 'Missing')}</strong></div>
           </div>
@@ -729,6 +1086,8 @@ function renderSummary() {
 
         <div class="summary-list">
           <div class="summary-row"><span>Selected network</span><strong>${escapeHtml(state.selectedNetwork)}</strong></div>
+          <div class="summary-row"><span>Language</span><strong>${escapeHtml(state.formatSettings.language)}</strong></div>
+          <div class="summary-row"><span>Date format</span><strong>${escapeHtml(getDateFormatOption().label)}</strong></div>
           <div class="summary-row"><span>Template preview</span><strong>${escapeHtml(resolveTemplate(state.socialTemplates[state.selectedNetwork]))}</strong></div>
         </div>
 
@@ -742,6 +1101,7 @@ function renderPage() {
   if (state.activeTab === 'dashboard') return renderDashboard()
   if (state.activeTab === 'music') return renderMusic()
   if (state.activeTab === 'reel') return renderReel()
+  if (state.activeTab === 'formats') return renderFormats()
   if (state.activeTab === 'poster') return renderPoster()
   if (state.activeTab === 'voiceover') return renderVoiceover()
   if (state.activeTab === 'social') return renderSocial()
@@ -750,7 +1110,7 @@ function renderPage() {
 
 function renderApp() {
   syncState()
-  app.innerHTML = `<main class="crm-app">${renderTopbar()}${renderStats()}${renderTabs()}<section class="workspace">${renderPage()}</section></main>`
+  app.innerHTML = `<main class="crm-app">${renderHeader()}<section class="workspace">${renderPage()}</section></main>`
 }
 
 function reorderSlides(sourceId, targetId) {
@@ -805,10 +1165,27 @@ function setPosterVideo(file) {
 
 function syncLiveBindings() {
   const slide = getSlide()
-  document.querySelectorAll('[data-bind="slide-caption"]').forEach((node) => { node.textContent = slide.caption })
-  document.querySelectorAll('[data-bind="poster-text"]').forEach((node) => { node.textContent = state.posterText })
-  document.querySelectorAll('[data-bind="social-preview"]').forEach((node) => { node.textContent = resolveTemplate(state.socialTemplates[state.selectedNetwork]) })
-  document.querySelectorAll('[data-bind="publish-mode"]').forEach((node) => { node.textContent = state.publishMode === 'auto' ? 'Auto publish' : 'Manual approval' })
+  document.querySelectorAll('[data-bind="slide-caption"]').forEach((node) => {
+    node.textContent = slide.caption
+  })
+  document.querySelectorAll('[data-bind="poster-text"]').forEach((node) => {
+    node.textContent = state.posterText
+  })
+  document.querySelectorAll('[data-bind="social-preview"]').forEach((node) => {
+    node.textContent = resolveTemplate(state.socialTemplates[state.selectedNetwork])
+  })
+  document.querySelectorAll('[data-bind="publish-mode"]').forEach((node) => {
+    node.textContent = getPublishModeLabel()
+  })
+  document.querySelectorAll('[data-bind="formatted-price"]').forEach((node) => {
+    node.textContent = formatPrice(state.fields.price)
+  })
+  document.querySelectorAll('[data-bind="format-date"]').forEach((node) => {
+    node.textContent = formatPreviewDate()
+  })
+  document.querySelectorAll('[data-bind="watermark-text"]').forEach((node) => {
+    node.textContent = state.formatSettings.watermark || 'Hidden'
+  })
 }
 
 async function startRecording() {
@@ -872,6 +1249,14 @@ function handleClick(event) {
 
   if (action === 'switch-tab') state.activeTab = target.dataset.tabId
   if (action === 'set-mode') state.publishMode = target.dataset.mode
+  if (action === 'set-currency') state.formatSettings.currency = target.dataset.currency
+  if (action === 'set-subtitle-color') state.formatSettings.subtitleColor = target.dataset.subtitleColor
+  if (action === 'set-subtitle-backdrop') state.formatSettings.subtitleBackdrop = target.dataset.subtitleBackdrop
+  if (action === 'set-subtitle-size') state.formatSettings.subtitleSize = target.dataset.subtitleSize
+  if (action === 'set-aspect-ratio') state.formatSettings.aspectRatio = target.dataset.aspectRatio
+  if (action === 'set-cta') state.formatSettings.cta = target.dataset.cta
+  if (action === 'set-language') state.formatSettings.language = target.dataset.language
+  if (action === 'set-date-format') state.formatSettings.dateFormat = target.dataset.dateFormat
   if (action === 'select-job') state.selectedJobId = target.dataset.jobId
   if (action === 'open-job-editor') state.activeTab = getJob().type === 'Poster' ? 'poster' : 'reel'
   if (action === 'approve-job') {
@@ -920,8 +1305,13 @@ function handleClick(event) {
   if (action === 'select-network') state.selectedNetwork = target.dataset.network
   if (action === 'send-selected-output') {
     const job = getJob()
-    job.status = state.publishMode === 'auto' ? 'Published' : 'Needs approval'
-    job.updated = 'Just now'
+    job.status =
+      state.publishMode === 'auto'
+        ? 'Published'
+        : state.publishMode === 'scheduled'
+          ? 'Scheduled'
+          : 'Needs approval'
+    job.updated = state.publishMode === 'scheduled' ? `Queued for ${formatScheduledTime()}` : 'Just now'
   }
 
   renderApp()
@@ -937,6 +1327,7 @@ function handleInput(event) {
   if (input === 'voice-notes') state.voiceNotes = target.value
   if (input === 'social-template') state.socialTemplates[state.selectedNetwork] = target.value
   if (input === 'field') state.fields[target.dataset.fieldName] = target.value
+  if (input === 'watermark') state.formatSettings.watermark = target.value
 
   syncLiveBindings()
 }
