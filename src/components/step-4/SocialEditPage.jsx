@@ -55,6 +55,8 @@ export default function SocialEditPage() {
   };
 
   return (
+    // Still to do: add functionality, that shows, which social media account has yet to be connected through a highlight or something
+    
     <div>
       <h1 className="text-2xl font-bold mb-4">Social Edit Page</h1>
 
