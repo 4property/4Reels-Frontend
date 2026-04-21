@@ -1,17 +1,19 @@
 import React from "react";
 import { StepInformation } from "./StepInformation";
 
-function getStepStatus(index, currentStep) {
+function getStepStatus(index, currentStep, skippedSteps) {
   if (index < currentStep) return "completed";
   if (index === currentStep) return "active";
+  if (skippedSteps !== undefined && skippedSteps.includes(index) && index > currentStep) return "skipped";
   return "pending";
 }
 
-function getLineStatus(index, currentStep) {
+function getLineStatus(index, currentStep, skippedSteps) {
+  if (skippedSteps !== undefined && skippedSteps.includes(index) && index >= currentStep) return "skipped";
   return index < currentStep ? "completed" : "pending";
 }
 
-function Navbar({ currentStep, onNext, onPrevious, stepNumber }) {
+function Navbar({ currentStep, onNext, onPrevious, stepNumber, skippedSteps }) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === stepNumber - 1;
 
@@ -22,14 +24,16 @@ function Navbar({ currentStep, onNext, onPrevious, stepNumber }) {
           <React.Fragment key={i}>
             <StepInformation
               stepIndex={i}
-              status={getStepStatus(i, currentStep)}
+              status={getStepStatus(i, currentStep, skippedSteps)}
             />
 
             {i < stepNumber - 1 && (
               <div
                 className={`h-1 w-10 transition-colors ${
-                  getLineStatus(i, currentStep) === "completed"
+                  getLineStatus(i, currentStep, skippedSteps) === "completed"
                     ? "bg-blue-950"
+                    : getLineStatus(i, currentStep, skippedSteps) === "skipped"
+                    ? "bg-amber-300"
                     : "bg-gray-300"
                 }`}
               />

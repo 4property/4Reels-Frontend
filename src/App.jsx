@@ -18,6 +18,8 @@ function App() {
     setCurrentStep(stepIndex);
   };
 
+  const skippedSteps = isToggledDefaultReel ? [0, 1, 2] : [];
+
   const steps = [
     <ReelChoice isToggledDefaultReel={isToggledDefaultReel} setIsToggledDefaultReel={setIsToggledDefaultReel} />,
     <ReelCustomisation />,
@@ -26,17 +28,22 @@ function App() {
   ];
 
   const goToNextStep = () => {
-    // Logic for skipping steps 1-4 if the default reel toggle is on, but as step 5 is doesn't exist on this branch, it hast o be commented out for the moment
-    // if(isToggledDefaultReel){
-    //   setCurrentStep(4);
-    //   return
-    // }
+     //Logic for skipping steps 1-4 if the default reel toggle is on, but as step 5 is doesn't exist on this branch, it hast o be commented out for the moment
+     if(isToggledDefaultReel){
+       setCurrentStep(3);
+       return
+     }
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const goToPreviousStep = () => {
+     if(isToggledDefaultReel){
+       setCurrentStep(0);
+       return
+     }
+    
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
@@ -49,6 +56,7 @@ function App() {
         onNext={goToNextStep}
         onPrevious={goToPreviousStep}
         stepNumber={steps.length}
+        skippedSteps={skippedSteps}
       />
       <div className="flex-1 min-h-0">{steps[currentStep]}</div>
     </div>
