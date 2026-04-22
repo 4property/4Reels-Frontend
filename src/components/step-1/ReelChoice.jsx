@@ -1,8 +1,10 @@
 import { CircleArrowRight } from "lucide-react";
 import React, { useState } from "react";
 
-export default function ReelChoice() {
-  const [isToggled1, setIsToggled1] = useState(false);
+export default function ReelChoice({
+  isToggledDefaultReel,
+  setIsToggledDefaultReel,
+}) {
   const [isToggled2, setIsToggled2] = useState(false);
 
   const mediaData = [
@@ -47,13 +49,13 @@ export default function ReelChoice() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-10 h-full">
+    <div className="flex flex-col md:flex-row gap-10 w-fit max-h-full">
       <div className="flex-3 flex flex-col">
         {/* <div className="">Reelchoice</div> */}
         <h1 className="text-2xl font-bold mb-4">My Reels and Posters</h1>
         <h2 className="text-lg font-semibold">Scheduled videos and posters:</h2>
-        <div className="w-full flex-1 min-h-0 overflow-y-auto border border-slate-200 rounded-xl p-4 m-4">
-          <ul className="w-full flex gap-4 flex-wrap justify-evenly px-2 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto border border-slate-200 rounded-xl p-4">
+          <ul className="flex gap-4 flex-wrap justify-evenly px-2 py-2">
             {mediaData.map((media) => (
               <li
                 className="w-50 h-fit cursor-pointer  hover:border-blue-950 hover:bg-slate-50 rounded-xl border border-transparent *:rounded-xl"
@@ -72,7 +74,7 @@ export default function ReelChoice() {
       </div>
       <div className="flex-2">
         <h2 className="p-2 m-4 text-xl font-semibold">Current Reel/Poster:</h2>
-        <div className="w-full h-auto p-2 m-4 flex justify-center items-center">
+        <div className="h-auto p-2 m-4 flex justify-center items-center">
           {selectedVideo.type === "video" ? (
             <div className="rounded-lg overflow-hidden px-1 py-1">
               <video
@@ -92,29 +94,29 @@ export default function ReelChoice() {
             />
           )}
         </div>
-        <label className="inline-flex items-center cursor-pointer p-2 m-4 w-full">
+        <label className="inline-flex items-center cursor-pointer p-2 w-full">
           <span className="ml-3 text-sm font-medium text-gray-900 w-8/10">
             Use default Reels
           </span>
           <input
             type="checkbox"
             className="sr-only"
-            checked={isToggled1}
-            onChange={() => setIsToggled1(!isToggled1)}
+            checked={isToggledDefaultReel}
+            onChange={() => setIsToggledDefaultReel(!isToggledDefaultReel)}
           />
           <div
             className={`relative inline-block w-10 h-6 transition duration-200 ease-in-out rounded-full ${
-              isToggled1 ? "bg-blue-950" : "bg-gray-300"
+              isToggledDefaultReel ? "bg-blue-950" : "bg-gray-300"
             }`}
           >
             <span
               className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ease-in-out ${
-                isToggled1 ? "translate-x-4" : "translate-x-0"
+                isToggledDefaultReel ? "translate-x-4" : "translate-x-0"
               }`}
             ></span>
           </div>
         </label>
-        <label className="inline-flex items-center cursor-pointer p-2 m-4 w-full">
+        <label className="inline-flex items-center cursor-pointer p-2 w-full">
           <span className="ml-3 text-sm font-medium text-gray-900 w-8/10">
             Use default Configuration
           </span>

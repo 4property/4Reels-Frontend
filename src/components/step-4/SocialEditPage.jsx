@@ -1,12 +1,17 @@
 import React from "react";
 import {
   FaYoutube,
-  FaInstagram,
   FaFacebook,
   FaLinkedin,
   FaTiktok,
   FaGoogle,
+  FaPinterest,
 } from "react-icons/fa";
+import { 
+  FaSquareThreads,
+  FaSquareBluesky,
+ } from "react-icons/fa6";
+import { AiFillInstagram } from "react-icons/ai";
 
 export default function SocialEditPage() {
   const [socialMediaPlatforms, setSocialMediaPlatforms] = React.useState([
@@ -18,7 +23,7 @@ export default function SocialEditPage() {
     },
     {
       name: "Instagram",
-      icon: FaInstagram,
+      icon: AiFillInstagram,
       title: "My Instagram title",
       description: "My Instagram description",
     },
@@ -46,6 +51,24 @@ export default function SocialEditPage() {
       title: "My Google My Business title",
       description: "My Google My Business description",
     },
+    {
+      name: "Threads",
+      icon: FaSquareThreads,
+      title: "My Threads title",
+      description: "My Threads description",
+    },
+    {
+      name: "Pinterest",
+      icon: FaPinterest,
+      title: "My Pinterest title",
+      description: "My Pinterest description",
+    },
+    {
+      name: "Bluesky",
+      icon: FaSquareBluesky,
+      title: "My Bluesky title",
+      description: "My Bluesky description",
+    }
   ]);
 
   const handleChange = (index, field, value) => {
@@ -55,6 +78,8 @@ export default function SocialEditPage() {
   };
 
   return (
+    // Still to do: add functionality, that shows, which social media account has yet to be connected through a highlight or something
+    
     <div>
       <h1 className="text-2xl font-bold mb-4">Social Edit Page</h1>
 
