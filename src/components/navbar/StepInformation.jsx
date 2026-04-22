@@ -8,6 +8,7 @@ function StepInformation({ stepIndex, status }) {
     completed: "bg-blue-950 border-blue-950 text-white",
     active: "bg-white border-blue-950 text-blue-950",
     pending: "bg-transparent border-gray-300 text-gray-400",
+    skipped: "bg-white border-amber-300 text-amber-400",
   };
 
   return (

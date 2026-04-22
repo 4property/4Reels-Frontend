@@ -1,8 +1,7 @@
 import { CircleArrowRight } from "lucide-react";
 import React, { useState } from "react";
 
-export default function ReelChoice() {
-  const [isToggled1, setIsToggled1] = useState(false);
+export default function ReelChoice( {isToggledDefaultReel, setIsToggledDefaultReel} ) {
   const [isToggled2, setIsToggled2] = useState(false);
 
   const mediaData = [
@@ -99,17 +98,17 @@ export default function ReelChoice() {
           <input
             type="checkbox"
             className="sr-only"
-            checked={isToggled1}
-            onChange={() => setIsToggled1(!isToggled1)}
+            checked={isToggledDefaultReel}
+            onChange={() => setIsToggledDefaultReel(!isToggledDefaultReel)}
           />
           <div
             className={`relative inline-block w-10 h-6 transition duration-200 ease-in-out rounded-full ${
-              isToggled1 ? "bg-blue-950" : "bg-gray-300"
+              isToggledDefaultReel ? "bg-blue-950" : "bg-gray-300"
             }`}
           >
             <span
               className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ease-in-out ${
-                isToggled1 ? "translate-x-4" : "translate-x-0"
+                isToggledDefaultReel ? "translate-x-4" : "translate-x-0"
               }`}
             ></span>
           </div>
