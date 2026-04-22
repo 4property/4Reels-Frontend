@@ -1,6 +1,6 @@
-import React,{ useState } from "react";
+import React, { useState } from "react";
 import Button from "../utils/Button";
-import {FaBookmark} from "react-icons/fa";
+import { FaBookmark } from "react-icons/fa";
 import { GoPlusCircle } from "react-icons/go";
 
 export default function ReelCustomisation() {
@@ -15,20 +15,55 @@ export default function ReelCustomisation() {
     { src: "src/assets/video.mp4", title: "Video 7", id: 7, type: "video" },
   ]);
   const [audioData, setAudioData] = useState([
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 1", id: 1, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 2", id: 2, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 3", id: 3, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 4", id: 4, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 5", id: 5, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 6", id: 6, type: "audio" },
-    { src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3", title: "Audio 7", id: 7, type: "audio" },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 1",
+      id: 1,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 2",
+      id: 2,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 3",
+      id: 3,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 4",
+      id: 4,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 5",
+      id: 5,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 6",
+      id: 6,
+      type: "audio",
+    },
+    {
+      src: "src/assets/artmylife-powerful-dramatic-trailer-514242.mp3",
+      title: "Audio 7",
+      id: 7,
+      type: "audio",
+    },
   ]);
 
   const [isToggled1, setIsToggled1] = useState(false);
   const [caption, setCaption] = React.useState("");
   const handleCaptionChange = (e) => {
     setCaption(e.target.value);
-  }
+  };
 
   // started implementing drag and drop functionality, but stopped, because we need to connect to server for it to work, doesnt make sense to try doing it beforehand, as we would need to change it anyway when connecting to the server
   function handleDragOver(e) {
@@ -40,7 +75,7 @@ export default function ReelCustomisation() {
     const item = Array.from(e.dataTransfer.files);
     // setDroppedItem(item);
     item.forEach((file) => {
-      if(file.type.startsWith("audio/")) {
+      if (file.type.startsWith("audio/")) {
         const newAudioItem = {
           src: URL.createObjectURL(file),
           title: file.name,
@@ -57,7 +92,7 @@ export default function ReelCustomisation() {
     const item = Array.from(e.dataTransfer.files);
     // setDroppedItem(item);
     item.forEach((file) => {
-      if(file.type.startsWith("video/") || file.type.startsWith("image/")) {
+      if (file.type.startsWith("video/") || file.type.startsWith("image/")) {
         const newMediaItem = {
           src: URL.createObjectURL(file),
           title: file.name,
@@ -70,10 +105,10 @@ export default function ReelCustomisation() {
   }
   const [draggedIndex, setDraggedIndex] = useState(null);
   function handleDragStart(e, index) {
-  setDraggedIndex(index);
+    setDraggedIndex(index);
 
-  const dragPreview = document.createElement("div");
-  dragPreview.textContent = mediaData[index].title;
+    const dragPreview = document.createElement("div");
+    dragPreview.textContent = mediaData[index].title;
     dragPreview.style.backgroundColor = "rgba(255, 255, 255, 0.7)";
     dragPreview.style.width = "80px";
     dragPreview.style.height = "120px";
@@ -91,7 +126,6 @@ export default function ReelCustomisation() {
       document.body.removeChild(dragPreview);
     });
   }
-
 
   function handleDropOnItem(dropIndex) {
     if (draggedIndex === null || draggedIndex === dropIndex) return;
@@ -114,13 +148,12 @@ export default function ReelCustomisation() {
   function handleClickAudio(audio) {
     setSelectedAudio(audio);
     // alert(`Selected audio: ${audio.title}`);
-
   }
 
   return (
     <div className="flex">
       <div className="flex flex-col gap-4 *:gap-4">
-        <h1>Reel Customisation</h1>
+        <h1 className="text-2xl font-bold mb-4">Reel Customisation</h1>
         <div className=" flex">
           {/* The div for changing the order of the images */}
           <div className="w-full flex-2 p-2 flex border border-slate-200 rounded-xl">
@@ -131,18 +164,28 @@ export default function ReelCustomisation() {
                   className={`rounded-xl cursor-pointer overflow-hidden hover:z-100 hover:duration-200 hover:scale-105 ${index !== 0 ? "-ml-40" : ""}`}
                   // style={{ zIndex: index }}
                   onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={handleDragOver} 
+                  onDragOver={handleDragOver}
                   onDrop={() => handleDropOnItem(index)}
                   onDragEnd={handleDragEnd}
                   draggable
                 >
-                  <video src={media.src} title={media.title} className=" object-cover" />
+                  <video
+                    src={media.src}
+                    title={media.title}
+                    className=" object-cover"
+                  />
                 </div>
               ))}
             </div>
           </div>
-          <div className="w-full p-2 flex flex-1 flex-col items-center border border-slate-200 rounded-xl" onDragOver={handleDragOver} onDrop={handleDropMedia}>
-            <p className="flex h-full items-center">Upload your own Images or Videos</p>
+          <div
+            className="w-full p-2 flex flex-1 flex-col items-center border border-slate-200 rounded-xl"
+            onDragOver={handleDragOver}
+            onDrop={handleDropMedia}
+          >
+            <p className="flex h-full items-center">
+              Upload your own Images or Videos
+            </p>
             <span className="flex flex-col h-full items-center gap-2">
               <GoPlusCircle />
             </span>
@@ -155,13 +198,15 @@ export default function ReelCustomisation() {
             <div className="w-full max-h-50 overflow-y-auto border:hidden">
               <ul className="w-full h-auto flex gap-2 flex-col justify-center px-2 py-2">
                 {audioData.map((media) => (
-                  <li className={`w-full hover:border-blue-950 hover:bg-slate-50 border rounded-lg ${selectedAudio?.id === media.id ? "border-blue-950 bg-slate-50" : "border-transparent"}`} onClick={() => handleClickAudio(media)}>
+                  <li
+                    className={`w-full hover:border-blue-950 hover:bg-slate-50 border rounded-lg ${selectedAudio?.id === media.id ? "border-blue-950 bg-slate-50" : "border-transparent"}`}
+                    onClick={() => handleClickAudio(media)}
+                  >
                     <audio controls className="w-full">
                       <source
                         src={media.src}
                         title={media.title}
                         type="audio/mpeg"
-                        
                       />
                       Your browser does not support the audio element.
                     </audio>
@@ -170,7 +215,11 @@ export default function ReelCustomisation() {
               </ul>
             </div>
           </div>
-          <div className="w-full p-2 flex flex-1 flex-col items-center border border-slate-200 rounded-xl" onDragOver={handleDragOver} onDrop={handleDropAudio}>
+          <div
+            className="w-full p-2 flex flex-1 flex-col items-center border border-slate-200 rounded-xl"
+            onDragOver={handleDragOver}
+            onDrop={handleDropAudio}
+          >
             <p className="flex h-full items-center">Upload your Music</p>
             <span className="flex flex-col h-full items-center gap-2">
               <GoPlusCircle />
@@ -182,16 +231,24 @@ export default function ReelCustomisation() {
         <div className=" h-3/5 p-2 ml-4 mt-10 flex flex-col border border-slate-200 rounded-xl">
           <h2 className="ml-4">Change Captions:</h2>
           <div className="w-full h-full flex border border-slate-200 rounded-xl">
-            {isToggled1 ? 
-            (<p className="p-2 font-bold">Caption Disabled. Use the voiceover feature to generate matching captions to your spoken voiceover.</p>)
-            : 
-            (<textarea
-              value={caption}
-              onChange={handleCaptionChange}
-              disabled={isToggled1}
-              placeholder={isToggled1 ? "Speech-to-text is active" : "Enter caption here..."}
-              className="w-full h-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-950 disabled:bg-gray-100"
-            />)}
+            {isToggled1 ? (
+              <p className="p-2 font-bold">
+                Caption Disabled. Use the voiceover feature to generate matching
+                captions to your spoken voiceover.
+              </p>
+            ) : (
+              <textarea
+                value={caption}
+                onChange={handleCaptionChange}
+                disabled={isToggled1}
+                placeholder={
+                  isToggled1
+                    ? "Speech-to-text is active"
+                    : "Enter caption here..."
+                }
+                className="w-full h-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-950 disabled:bg-gray-100"
+              />
+            )}
           </div>
         </div>
         <label className="inline-flex items-center cursor-pointer p-2 m-4 min-w-60">
