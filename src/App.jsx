@@ -40,6 +40,7 @@ function App() {
       {
         id: "social-edit",
         element: <SocialEditPage />,
+        isSkipped: isToggledDefaultReel,
         reviewTitle: "Social Changes",
         reviewButtonLabel: "Go back to Social Page",
       },
@@ -48,7 +49,7 @@ function App() {
         element: null,
       },
     ],
-    [isToggledDefaultReel]
+    [isToggledDefaultReel],
   );
 
   const skippedSteps = useMemo(
@@ -60,7 +61,7 @@ function App() {
 
         return indexes;
       }, []),
-    [steps]
+    [steps],
   );
 
   const findNextAvailableStep = (fromIndex) => {
@@ -87,7 +88,11 @@ function App() {
     steps.findIndex((step) => step.id === stepId);
 
   const goToStep = (stepIndex) => {
-    if (stepIndex < 0 || stepIndex >= steps.length || steps[stepIndex].isSkipped) {
+    if (
+      stepIndex < 0 ||
+      stepIndex >= steps.length ||
+      steps[stepIndex].isSkipped
+    ) {
       return;
     }
 
@@ -108,7 +113,7 @@ function App() {
           title: step.reviewTitle,
           buttonLabel: step.reviewButtonLabel,
         })),
-    [steps]
+    [steps],
   );
 
   const currentStepContent =
