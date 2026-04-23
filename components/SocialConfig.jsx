@@ -307,3 +307,4 @@ const SocialPreviewCard = ({ net, text }) => {
 };
 
 window.SocialConfig = SocialConfig;
+window.SocialPreviewCard = SocialPreviewCard;
