@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\4pm\\\\Desktop\\\\4reels \\(2\\)\\\\public\" -Force)",
+      "PowerShell(Move-Item \"c:\\\\Users\\\\4pm\\\\Desktop\\\\4reels \\(2\\)\\\\assets\" \"c:\\\\Users\\\\4pm\\\\Desktop\\\\4reels \\(2\\)\\\\public\\\\assets\")",
+      "PowerShell(Move-Item \"c:\\\\Users\\\\4pm\\\\Desktop\\\\4reels \\(2\\)\\\\uploads\" \"c:\\\\Users\\\\4pm\\\\Desktop\\\\4reels \\(2\\)\\\\public\\\\uploads\")",
+      "Bash(npm install *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}
