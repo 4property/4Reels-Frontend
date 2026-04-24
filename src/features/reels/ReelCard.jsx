@@ -16,7 +16,7 @@ export function ReelCard({ reel, onOpen, onApprove, onReject }) {
   return (
     <div className="card reel-card" onClick={onOpen}>
       <div className="reel-card-cover">
-        <Cover kind={reel.cover} ratio="3/4" label={reel.title} video />
+        <Cover kind={reel.cover} ratio="3/4" label={reel.title} video="hover" />
         <div className="reel-card-cover-top">
           <StatusBadge status={reel.publishStatus} />
           <div className="chip chip-overlay">

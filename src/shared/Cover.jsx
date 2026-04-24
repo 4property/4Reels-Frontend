@@ -1,10 +1,17 @@
+import { useState } from 'react';
+
 /**
  * Preview surface used everywhere a reel thumbnail or a photo is shown.
  *
- * Three modes, in priority order:
- *  1. `video` prop = true      → plays the shared reel.mp4 (with `poster`)
- *  2. `src` prop or known kind → renders a still image
- *  3. fallback                 → striped SVG placeholder tinted by kind
+ * Modes (in priority order):
+ *  1. `video={true}`            → autoplays the shared reel.mp4 immediately
+ *                                  (use for hero previews: editor, brand, etc.)
+ *  2. `video="hover"`           → shows the still poster; only loads + plays
+ *                                  the video while the cursor is hovering.
+ *                                  Use this in lists / grids so you don't fan
+ *                                  out N video downloads on page load.
+ *  3. `src` prop or known kind  → renders a still image.
+ *  4. fallback                  → striped SVG placeholder tinted by kind.
  */
 
 /** Maps "kind" ids (used across the mock) to real asset paths. */
@@ -45,18 +52,34 @@ const PLACEHOLDER_PALETTE = {
 };
 
 export function Cover({ kind = 'default', label, ratio = '3/4', className = '', style = {}, src, video = false }) {
+  const [hovering, setHovering] = useState(false);
   const poster = src || PHOTO_MAP[kind];
   const aspect = { aspectRatio: ratio, ...style };
 
-  if (video === true) {
+  if (video === true || video === 'hover') {
+    const isHover = video === 'hover';
+    const showVideo = !isHover || hovering;
+
     return (
-      <div className={`cover with-video ${className}`} style={aspect}>
-        <video
-          className="cover-media"
-          src={REEL_VIDEO_SRC}
-          poster={poster}
-          autoPlay muted loop playsInline preload="auto"
-        />
+      <div
+        className={`cover with-video ${className}`}
+        style={aspect}
+        onMouseEnter={isHover ? () => setHovering(true) : undefined}
+        onMouseLeave={isHover ? () => setHovering(false) : undefined}
+      >
+        {showVideo ? (
+          <video
+            className="cover-media"
+            src={REEL_VIDEO_SRC}
+            poster={poster}
+            autoPlay muted loop playsInline preload="auto"
+          />
+        ) : (
+          // Use the property photo as a still preview. The browser only
+          // hits the network for this single image — no video bytes are
+          // requested until the user expresses intent (hover).
+          <img className="cover-media" src={poster} alt={label || ''} loading="lazy" />
+        )}
       </div>
     );
   }
@@ -65,7 +88,7 @@ export function Cover({ kind = 'default', label, ratio = '3/4', className = '', 
   if (resolvedSrc) {
     return (
       <div className={`cover ${className}`} style={aspect}>
-        <img className="cover-media" src={resolvedSrc} alt={label || ''} />
+        <img className="cover-media" src={resolvedSrc} alt={label || ''} loading="lazy" />
       </div>
     );
   }

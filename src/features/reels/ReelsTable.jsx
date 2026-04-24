@@ -37,7 +37,7 @@ export function ReelsTable({ reels, onOpen }) {
               <td>
                 <div className="row gap-5">
                   <div className="reels-table-thumb">
-                    <Cover kind={r.cover} ratio="3/4" video />
+                    <Cover kind={r.cover} ratio="3/4" video="hover" />
                   </div>
                   <div>
                     <div className="reels-table-title">{r.title}</div>
