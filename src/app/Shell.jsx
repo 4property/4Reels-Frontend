@@ -7,6 +7,7 @@ import { ReelDefaultsConfig } from '../features/defaults/index.js';
 import { MusicConfig } from '../features/music/index.js';
 import { NotificationSettings } from '../features/notifications/index.js';
 import { Dashboard, ReelEditorRoute } from '../features/reels/index.js';
+import { GhlMvpStatus } from '../features/session/GhlMvpStatus.jsx';
 import { RequirePermission } from '../features/session/index.js';
 import { SocialConfig } from '../features/social/index.js';
 import { PAGES } from './pages.js';
@@ -24,6 +25,7 @@ export function Shell() {
   return (
     <div>
       <Topbar onOpenNotifications={() => setNotifOpen(true)} />
+      <GhlMvpStatus />
 
       <PageContainer>
         <Routes>

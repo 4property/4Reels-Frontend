@@ -4,7 +4,7 @@ import { Avatar } from '../shared/Avatar.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useAgency } from './providers/TenantProvider.jsx';
 import { useTheme } from './providers/ThemeProvider.jsx';
-import { useCurrentUser, usePermissions } from '../features/session/index.js';
+import { useCurrentUser, useGhlMvp, usePermissions } from '../features/session/index.js';
 import { can } from '../features/session/permissions.js';
 import { MobileNav } from './MobileNav.jsx';
 import { PAGES } from './pages.js';
@@ -19,6 +19,7 @@ export function Topbar({ onOpenNotifications }) {
   const { theme, toggle: toggleTheme } = useTheme();
   const agency = useAgency();
   const user = useCurrentUser();
+  const ghlMvp = useGhlMvp();
   const permissions = usePermissions();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,7 +85,7 @@ export function Topbar({ onOpenNotifications }) {
           <button className="icon-btn topbar-desktop-only" title="Help">
             <Icon name="help" size={15} />
           </button>
-          <Avatar name={user.name} color={`hsl(${user.avatarHue ?? 215}, 55%, 55%)`} />
+          <UserMenu user={user} ghlMvp={ghlMvp} />
         </div>
       </div>
 
@@ -95,5 +96,65 @@ export function Topbar({ onOpenNotifications }) {
         onOpenNotifications={onOpenNotifications}
       />
     </>
+  );
+}
+
+function UserMenu({ user, ghlMvp }) {
+  const [open, setOpen] = useState(false);
+  const locationId = ghlMvp?.locationId || 'Not set';
+  const userId = ghlMvp?.userId || user.id || 'Not set';
+  const tokenState = ghlMvp?.connected ? 'Saved' : 'Missing';
+
+  return (
+    <div className="topbar-user-menu">
+      <button
+        className="topbar-user-button"
+        onClick={() => setOpen((current) => !current)}
+        aria-label="Open user context"
+      >
+        <Avatar name={user.name} color={`hsl(${user.avatarHue ?? 215}, 55%, 55%)`} />
+      </button>
+
+      {open && (
+        <div className="topbar-user-popover">
+          <div className="topbar-user-popover-head">
+            <Avatar name={user.name} color={`hsl(${user.avatarHue ?? 215}, 55%, 55%)`} />
+            <div className="min-w-0">
+              <div className="topbar-user-popover-name">{user.name}</div>
+              <div className="topbar-user-popover-role">{user.role}</div>
+            </div>
+          </div>
+
+          <div className="topbar-user-context-grid">
+            <ContextRow label="Mode" value={ghlMvp?.adminMode ? 'Direct admin' : 'GHL location'} />
+            <ContextRow label="Location ID" value={locationId} mono />
+            <ContextRow label="User ID" value={userId} mono />
+            <ContextRow label="Token" value={tokenState} tone={ghlMvp?.connected ? 'success' : 'warning'} />
+            <ContextRow label="Source" value={ghlMvp?.source || 'app session'} />
+          </div>
+
+          <div className="topbar-user-popover-actions">
+            <NavLink className="btn sm" to="/admin" onClick={() => setOpen(false)}>
+              <Icon name="shield" size={12} />
+              Admin
+            </NavLink>
+            <button className="btn sm ghost" onClick={() => setOpen(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContextRow({ label, value, mono = false, tone = '' }) {
+  return (
+    <div className="topbar-context-row">
+      <span className="topbar-context-label">{label}</span>
+      <span className={`topbar-context-value ${mono ? 'mono' : ''} ${tone}`}>
+        {value}
+      </span>
+    </div>
   );
 }

@@ -2,6 +2,106 @@
  * invite/edit modals. Built on top of the global .modal and .drawer
  * primitives; only admin-specific sizing and bespoke chrome lives here. */
 
+.agency-config-drawer {
+  max-width: 880px;
+}
+
+.agency-drawer-subtabs.tabs {
+  margin-top: var(--space-6);
+  margin-bottom: 0;
+  display: flex;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* GoHighLevel MVP accounts */
+.ghl-admin-card {
+  overflow: hidden;
+  margin-bottom: var(--space-10);
+}
+
+.ghl-admin-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-5);
+  padding: 0 var(--space-8) var(--space-7);
+}
+
+.ghl-admin-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 var(--space-8) var(--space-7);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-12);
+  background: var(--info-soft);
+  color: var(--info);
+}
+.ghl-admin-message.success { background: var(--success-soft); color: var(--success); }
+.ghl-admin-message.danger { background: var(--danger-soft); color: var(--danger); }
+
+.ghl-admin-form {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.1fr) minmax(140px, 0.8fr) minmax(220px, 1.5fr);
+  gap: var(--space-5);
+  padding: 0 var(--space-8) var(--space-8);
+  align-items: end;
+}
+
+.ghl-admin-form .field:nth-of-type(4),
+.ghl-admin-form .field:nth-of-type(5) {
+  grid-column: span 1;
+}
+
+.ghl-admin-form-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.ghl-admin-table-wrap {
+  border-top: 1px solid var(--divider);
+  overflow-x: auto;
+}
+
+.ghl-admin-summary .mono {
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.ghl-admin-trace {
+  border-top: 1px solid var(--divider);
+  padding: var(--space-5) var(--space-8) var(--space-7);
+  background: var(--bg-soft);
+}
+
+.ghl-admin-trace summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+}
+
+.ghl-admin-trace pre {
+  max-height: 280px;
+  overflow: auto;
+  margin: var(--space-5) 0 0;
+  padding: var(--space-5);
+  border: 1px solid var(--divider);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-11);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Policy strip ──────────────────────────────────────────────────── */
 .policy-strip { padding: var(--space-8); margin-bottom: var(--space-8); }
 
@@ -351,6 +451,9 @@
 /*                               TABLET                                  */
 /* ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
+  .ghl-admin-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ghl-admin-form { grid-template-columns: 1fr 1fr; }
+  .ghl-admin-token-field { grid-column: 1 / -1; }
   .agencies-metrics { grid-template-columns: repeat(2, 1fr); }
   .billing-grid { grid-template-columns: 1fr; }
   .policy-sso { grid-template-columns: 1fr; }
@@ -364,6 +467,14 @@
 /*                               MOBILE                                  */
 /* ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 560px) {
+  .ghl-admin-summary { grid-template-columns: 1fr; }
+  .ghl-admin-summary { padding: 0 var(--space-6) var(--space-6); }
+  .ghl-admin-form {
+    grid-template-columns: 1fr;
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .ghl-admin-message { margin: 0 var(--space-6) var(--space-6); }
+  .ghl-admin-trace { padding: var(--space-5) var(--space-6) var(--space-6); }
   .policy-strip { padding: var(--space-6); }
   .policy-grid { grid-template-columns: 1fr; gap: var(--space-4); }
   .policy-row { padding: var(--space-4) var(--space-5); }

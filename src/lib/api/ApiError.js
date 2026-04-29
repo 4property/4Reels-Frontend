@@ -8,11 +8,13 @@ export class ApiError extends Error {
    * @param {number} status
    * @param {string} message
    * @param {unknown} [body]
+   * @param {unknown} [trace]
    */
-  constructor(status, message, body) {
+  constructor(status, message, body, trace) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
+    this.trace = trace;
   }
 }
