@@ -5,7 +5,7 @@ export function ModeCard({ selected, onClick, icon, tone, title, tagline, points
   const cls = `mode-card ${selected ? 'selected' : ''} tone-${tone}`;
 
   return (
-    <button className={cls} onClick={onClick}>
+    <button className={cls} type="button" onClick={onClick}>
       <div className="mode-card-head">
         <span className="mode-card-icon">
           <Icon name={icon} size={16} />

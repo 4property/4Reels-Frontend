@@ -1,23 +1,20 @@
-/**
+﻿/**
  * Single entry point for every network request the app makes.
  *
- * - In dev, if VITE_USE_MOCK is not set to "false", regular product requests
- *   are routed to the in-memory mock in `./mock.js`. The mock resolves with
- *   plain JS objects and simulates ~150ms of latency.
- * - MVP GoHighLevel requests under `/mvp/` always bypass the mock API and use
- *   VITE_MVP_API_URL.
- * - In prod (or when VITE_USE_MOCK=false), requests go to fetch() against
- *   VITE_API_URL.
+ * All paths route to the live backend at `VITE_MVP_API_URL`. The historical
+ * in-memory mock layer was retired once every feature page started talking
+ * to the real `/v1/admin/agencies/...` surface â€” keeping it would just be a
+ * second source of truth that drifts.
  *
- * Feature code must never call fetch directly — call `apiRequest` through a
- * feature-level `api.js` module (e.g. `features/reels/api.js`) which knows its
- * own paths and shapes.
+ * Feature code must never call `fetch` directly â€” call `apiRequest` through
+ * a feature-level `api.js` module so paths and shapes stay co-located with
+ * the feature that owns them.
  */
 import { ApiError } from './ApiError.js';
+import { getAuthToken, notifyUnauthorized } from './authToken.js';
 
 export const BASE_URL = import.meta.env.VITE_API_URL || '';
 export const MVP_API_URL = import.meta.env.VITE_MVP_API_URL || BASE_URL;
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 export const API_TRACE = import.meta.env.VITE_API_TRACE !== 'false';
 
 /**
@@ -25,7 +22,7 @@ export const API_TRACE = import.meta.env.VITE_API_TRACE !== 'false';
  *
  * @typedef {object} RequestOptions
  * @property {HttpMethod} [method]      HTTP verb, defaults to 'GET'.
- * @property {unknown}    [body]        Plain JS object — will be JSON-stringified.
+ * @property {unknown}    [body]        Plain JS object â€” will be JSON-stringified.
  * @property {Record<string, string|number|boolean|undefined>} [query]
  *                                      Flat object of query params.
  * @property {Record<string, string>}   [headers]  Extra headers.
@@ -33,32 +30,15 @@ export const API_TRACE = import.meta.env.VITE_API_TRACE !== 'false';
  */
 
 /**
- * @param {string} path  Path starting with `/`, e.g. `/reels`.
+ * @param {string} path  Path starting with `/`, e.g. `/v1/admin/agencies`.
  * @param {RequestOptions} [options]
  * @returns {Promise<any>} Parsed JSON response.
  */
 export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, query, headers, signal } = options;
-  const isMvpRequest =
-    path.startsWith('/mvp/') || path.startsWith('/admin/agencies');
-  const trace = createTrace({ method, path, body, isMvpRequest });
+  const trace = createTrace({ method, path, body });
 
-  if (USE_MOCK && !isMvpRequest) {
-    try {
-      const { handleMockRequest } = await import('./mock/index.js');
-      return await handleMockRequest(path, { method, body, query });
-    } catch (error) {
-      const apiError = toApiError(error, `Mock API error calling ${method} ${path}`);
-      apiError.trace = finishTrace(trace, {
-        mock: true,
-        error: serializeError(error),
-      });
-      logApiError(apiError.trace);
-      throw apiError;
-    }
-  }
-
-  const baseUrl = isMvpRequest ? MVP_API_URL : BASE_URL;
+  const baseUrl = MVP_API_URL || BASE_URL;
   const url = new URL(`${trimTrailingSlash(baseUrl)}${path}`, window.location.origin);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
@@ -80,15 +60,14 @@ export async function apiRequest(path, options = {}) {
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal,
-      credentials: isMvpRequest ? 'omit' : 'include',
+      credentials: 'omit',
     });
   } catch (error) {
     const apiError = new ApiError(
       0,
-      `Network/CORS error calling ${url.origin}. Check that the backend is deployed with CORS enabled.`,
+      `Network/CORS error calling ${url.origin}. Check that the backend is reachable and serves CORS for this origin.`,
       { cause: error instanceof Error ? error.message : String(error) },
       finishTrace(trace, {
-        mock: false,
         url: url.toString(),
         error: serializeError(error),
       }),
@@ -101,12 +80,14 @@ export async function apiRequest(path, options = {}) {
   const payload = parseJson(text);
 
   if (!res.ok) {
+    if (res.status === 401 && isAdminPath(path)) {
+      notifyUnauthorized();
+    }
     const apiError = new ApiError(
       res.status,
       payload?.message || payload?.error || res.statusText,
       payload || text,
       finishTrace(trace, {
-        mock: false,
         url: url.toString(),
         status: res.status,
         ok: false,
@@ -122,23 +103,32 @@ export async function apiRequest(path, options = {}) {
 }
 
 /**
- * Placeholder — when auth is wired, this is the single spot that attaches
- * Authorization + X-Tenant-Id headers.
+ * Reads the current bearer token from the in-memory store (`authToken.js`)
+ * and turns it into an `Authorization` header. The store is populated by
+ * `SessionProvider` once the GHL session resolves with an `agency_token`,
+ * or when a developer pastes a super-admin bearer in the local connect
+ * screen. Returns `{}` when no token is set so unauthenticated calls (the
+ * GHL session POST itself) keep working.
  */
 function getAuthHeaders() {
-  return {};
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isAdminPath(path) {
+  return typeof path === 'string' && path.startsWith('/v1/admin/');
 }
 
 function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/, '');
 }
 
-function createTrace({ method, path, body, isMvpRequest }) {
+function createTrace({ method, path, body }) {
   return {
     traceId: createTraceId(),
     method,
     path,
-    target: isMvpRequest ? 'mvp-backend' : 'app-backend',
+    target: 'live-backend',
     startedAt: new Date().toISOString(),
     startMs: nowMs(),
     requestBody: redact(body),
@@ -171,11 +161,6 @@ function parseJson(text) {
   }
 }
 
-function toApiError(error, fallbackMessage) {
-  if (error instanceof ApiError) return error;
-  return new ApiError(0, error?.message || fallbackMessage, { cause: serializeError(error) });
-}
-
 function serializeError(error) {
   if (error instanceof Error) {
     return {
@@ -189,7 +174,7 @@ function serializeError(error) {
 
 function logApiError(trace) {
   if (!API_TRACE || typeof console === 'undefined') return;
-  const status = trace.status ?? (trace.mock ? 'MOCK' : 'NETWORK');
+  const status = trace.status ?? 'NETWORK';
   const label = `[api:error] ${trace.method} ${trace.path} -> ${status} (${trace.durationMs}ms)`;
   if (console.groupCollapsed) {
     console.groupCollapsed(label);

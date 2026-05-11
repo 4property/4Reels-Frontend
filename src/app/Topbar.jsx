@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Avatar } from '../shared/Avatar.jsx';
 import { Icon } from '../shared/Icon.jsx';
@@ -13,7 +13,7 @@ import './app.css';
 /** Sticky top nav. Tabs are filtered by the current user's permissions so a
  *  Viewer never sees Admin, etc. Active tab is derived from the URL.
  *
- *  On tablet / mobile (≤900px) the inline tabs collapse into a hamburguesa
+ *  On tablet / mobile (â‰¤900px) the inline tabs collapse into a hamburguesa
  *  menu (<MobileNav/>). Desktop layout is unchanged. */
 export function Topbar({ onOpenNotifications }) {
   const { theme, toggle: toggleTheme } = useTheme();
@@ -31,7 +31,7 @@ export function Topbar({ onOpenNotifications }) {
 
   return (
     <>
-      <div className="topbar" data-screen-label={`Nav · ${activeLabel}`}>
+      <div className="topbar" data-screen-label={`Nav Â· ${activeLabel}`}>
         <button
           className="icon-btn topbar-burger"
           onClick={() => setMenuOpen(true)}
@@ -41,12 +41,11 @@ export function Topbar({ onOpenNotifications }) {
         </button>
 
         <div className="topbar-brand">
-          <span className="topbar-brand-mark">4</span>
-          <span className="topbar-brand-text">4Reels</span>
           {agency && (
             <>
-              <span className="topbar-brand-sep" />
-              <img className="topbar-agency-logo" src={agency.logo} alt={agency.name} />
+              {agency.logo && (
+                <img className="topbar-agency-logo" src={agency.logo} alt={agency.name} />
+              )}
               <span className="topbar-agency-name">{agency.name}</span>
             </>
           )}
@@ -70,8 +69,8 @@ export function Topbar({ onOpenNotifications }) {
         <div className="topbar-right">
           <div className="search topbar-search">
             <Icon name="search" size={14} />
-            <input placeholder="Search reels, properties…" />
-            <span className="kbd">⌘K</span>
+            <input placeholder="Search reels, propertiesâ€¦" />
+            <span className="kbd">âŒ˜K</span>
           </div>
           <button className="icon-btn topbar-mobile-search" title="Search">
             <Icon name="search" size={15} />
@@ -134,7 +133,7 @@ function UserMenu({ user, ghlMvp }) {
           </div>
 
           <div className="topbar-user-popover-actions">
-            <NavLink className="btn sm" to="/admin" onClick={() => setOpen(false)}>
+            <NavLink className="btn sm" to="/v1/admin" onClick={() => setOpen(false)}>
               <Icon name="shield" size={12} />
               Admin
             </NavLink>

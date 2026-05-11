@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
 import { Spinner } from '../../shared/Spinner.jsx';
 import { adminApi } from './api.js';
@@ -116,7 +116,7 @@ export function AdminView() {
 
         <div style={{ overflowX: 'auto' }}>
           {loading && agencies.length === 0 ? (
-            <div className="empty">Loading…</div>
+            <div className="empty">Loadingâ€¦</div>
           ) : filtered.length === 0 ? (
             <div className="empty">
               No agencies yet. Create one to wire a WordPress site to a GHL location.

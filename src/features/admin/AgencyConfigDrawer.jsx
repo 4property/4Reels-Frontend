@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
 import { Spinner } from '../../shared/Spinner.jsx';
 import { adminApi } from './api.js';
@@ -131,7 +131,7 @@ export function AgencyConfigDrawer({ agency, onClose, onChanged }) {
 function SourcesPanel({ agencyId, sources, reload }) {
   const [form, setForm] = useState({
     site_id: '',
-    source_name: '',
+    name: '',
     site_url: '',
   });
   const [editingId, setEditingId] = useState('');
@@ -140,14 +140,14 @@ function SourcesPanel({ agencyId, sources, reload }) {
   const [message, setMessage] = useState(null);
 
   const resetForm = () => {
-    setForm({ site_id: '', source_name: '', site_url: '' });
+    setForm({ site_id: '', name: '', site_url: '' });
     setEditingId('');
   };
 
   const startEdit = (source) => {
     setForm({
       site_id: source.site_id,
-      source_name: source.name,
+      name: source.name,
       site_url: source.site_url || '',
     });
     setEditingId(source.wordpress_source_id);
@@ -155,19 +155,26 @@ function SourcesPanel({ agencyId, sources, reload }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!form.site_id.trim() || !form.source_name.trim()) {
-      setMessage({ tone: 'danger', text: 'site_id and source_name are required.' });
+    if (!form.site_id.trim() || !form.name.trim()) {
+      setMessage({ tone: 'danger', text: 'site_id and name are required.' });
       return;
     }
     setSubmitting(true);
     setMessage(null);
     try {
-      await adminApi.upsertAgencySource(agencyId, {
-        site_id: form.site_id.trim().toLowerCase(),
-        source_name: form.source_name.trim(),
-        site_url: form.site_url.trim() || undefined,
-        source_status: 'active',
-      });
+      if (editingId) {
+        await adminApi.reconfigureAgencySource(agencyId, editingId, {
+          name: form.name.trim(),
+          site_url: form.site_url.trim() || undefined,
+        });
+      } else {
+        await adminApi.upsertAgencySource(agencyId, {
+          site_id: form.site_id.trim().toLowerCase(),
+          name: form.name.trim(),
+          site_url: form.site_url.trim() || undefined,
+          status: 'active',
+        });
+      }
       setMessage({ tone: 'success', text: 'Source saved.' });
       resetForm();
       await reload();
@@ -244,8 +251,8 @@ function SourcesPanel({ agencyId, sources, reload }) {
             <span className="label">Display name</span>
             <input
               className="input"
-              value={form.source_name}
-              onChange={(event) => setForm((curr) => ({ ...curr, source_name: event.target.value }))}
+              value={form.name}
+              onChange={(event) => setForm((curr) => ({ ...curr, name: event.target.value }))}
               placeholder="Janet Carroll"
               required
             />
@@ -561,7 +568,7 @@ function ReelPanel({ agencyId, profile, reload }) {
 
   useEffect(() => {
     setForm(buildReelFormState(profile));
-  }, [profile?.profile_id, profile?.updated_at]);
+  }, [profile]);
 
   const togglePlatform = (platform) => {
     setForm((curr) => ({
@@ -861,7 +868,14 @@ function AgencyPanel({ agency, reload, onClose }) {
       timezone: agency?.timezone || 'Europe/Dublin',
       status: agency?.status || 'active',
     });
-  }, [agency?.agency_id, agency?.updated_at]);
+  }, [
+    agency?.agency_id,
+    agency?.name,
+    agency?.slug,
+    agency?.status,
+    agency?.timezone,
+    agency?.updated_at,
+  ]);
 
   const submit = async (event) => {
     event.preventDefault();

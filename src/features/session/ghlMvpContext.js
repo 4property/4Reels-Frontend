@@ -1,4 +1,4 @@
-import { apiRequest } from '../../lib/api/client.js';
+﻿import { apiRequest } from '../../lib/api/client.js';
 
 const STORAGE_KEY = '4reels.ghlMvpContext';
 
@@ -30,7 +30,7 @@ export function shouldUseMvpAdminMode() {
   const params = new URLSearchParams(window.location.search);
   const requested = params.get('admin') || params.get('mvp_admin');
   if (requested && ['1', 'true', 'yes'].includes(requested.toLowerCase())) return true;
-  return window.location.pathname.startsWith('/admin');
+  return window.location.pathname.startsWith('/v1/admin');
 }
 
 export async function resolveGhlMvpContext() {
@@ -103,13 +103,16 @@ export function buildMvpUser(context, session) {
     lastSeen: 'now',
     avatarHue: 215,
     joined: 'Marketplace',
+    agencyId: session?.agency_id || null,
+    // Agency users can edit every configuration tab for their own agency,
+    // but they MUST NOT see the platform Admin console.
     permissions: {
       reels: 'rw',
       publish: 'rw',
       music: 'rw',
       brand: 'rw',
       automation: 'rw',
-      admin: 'rw',
+      admin: 'none',
       api: 'rw',
     },
     ghlMvp: {
@@ -118,6 +121,7 @@ export function buildMvpUser(context, session) {
       locationId,
       source: context.source || 'unknown',
       connected: Boolean(session?.connected || session?.has_token),
+      agencyId: session?.agency_id || null,
       session,
       encryptedContextOnly: Boolean(context.encryptedContextOnly),
       userFallback: Boolean(context.userFallback),
@@ -138,12 +142,17 @@ export function buildMvpAdminUser() {
     lastSeen: 'now',
     avatarHue: 280,
     joined: 'Direct admin',
+    agencyId: null,
+    // Platform super-admins only see the Admin console. The agency-scoped
+    // configuration tabs (Reels / Music / Social / Brand / Defaults /
+    // Automation) are hidden â€” the super-admin reaches that data by opening
+    // an agency from inside the Admin drawer.
     permissions: {
-      reels: 'rw',
-      publish: 'rw',
-      music: 'rw',
-      brand: 'rw',
-      automation: 'rw',
+      reels: 'none',
+      publish: 'none',
+      music: 'none',
+      brand: 'none',
+      automation: 'none',
       admin: 'rw',
       api: 'rw',
     },
@@ -154,6 +163,7 @@ export function buildMvpAdminUser() {
       locationId: '',
       source: 'admin-direct',
       connected: false,
+      agencyId: null,
       session: null,
       encryptedContextOnly: false,
       userFallback: false,
@@ -258,7 +268,7 @@ async function resolveEncryptedHighLevelContext(parentPayload) {
   if (!encryptedData) return null;
 
   try {
-    const response = await apiRequest('/mvp/gohighlevel/context', {
+    const response = await apiRequest('/v1/sessions/gohighlevel/context', {
       method: 'POST',
       body: { encryptedData },
     });

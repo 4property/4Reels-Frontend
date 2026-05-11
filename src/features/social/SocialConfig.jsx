@@ -1,27 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
+import { Spinner } from '../../shared/Spinner.jsx';
 import { useSocials, useVariables } from '../../app/providers/TenantProvider.jsx';
 import { renderTemplate, splitTemplate } from '../../lib/utils/template.js';
 import { NETWORK_LIMITS } from '../reels/editor/defaults.js';
 import { SocialPreviewCard } from './SocialPreviewCard.jsx';
-import { useSocialTemplates } from './hooks.js';
+import { useSaveSocialTemplates, useSocialTemplates } from './hooks.js';
 import './styles.css';
 
 /** Social page — per-network description template editor. */
 export function SocialConfig() {
   const socials = useSocials();
   const variables = useVariables();
-  const { templates: initialTemplates, loading } = useSocialTemplates();
+  const { templates: initialTemplates, agencyId, loading, refetch } = useSocialTemplates();
+  const [save, { loading: saving }] = useSaveSocialTemplates();
 
   const [activeNet, setActiveNet] = useState('instagram');
   const [templates, setTemplates] = useState({});
+  const [hydrated, setHydrated] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    if (!loading && Object.keys(templates).length === 0 && Object.keys(initialTemplates).length > 0) {
-      setTemplates(initialTemplates);
+    if (!loading && !hydrated) {
+      setTemplates({ ...(initialTemplates || {}) });
+      setHydrated(true);
     }
-  }, [loading, initialTemplates, templates]);
+  }, [loading, initialTemplates, hydrated]);
+
+  const handleSave = async () => {
+    if (!agencyId) return;
+    setStatusMessage(null);
+    try {
+      await save({ agencyId, templates });
+      setStatusMessage({ tone: 'success', text: 'Templates saved.' });
+      await refetch();
+    } catch (err) {
+      setStatusMessage({
+        tone: 'danger',
+        text: err?.body?.error || err?.message || 'Could not save templates.',
+      });
+    }
+  };
+
+  const handleReset = () => {
+    setTemplates({ ...(initialTemplates || {}) });
+    setStatusMessage({ tone: 'info', text: 'Templates reset to last saved values.' });
+  };
 
   const text = templates[activeNet] || '';
   const setText = (t) => setTemplates({ ...templates, [activeNet]: t });
@@ -53,10 +78,42 @@ export function SocialConfig() {
           <p className="page-subtitle">Connect your channels and edit the description template for each network.</p>
         </div>
         <div className="row gap-4">
-          <button className="btn"><Icon name="eye" size={14} /> Preview all</button>
-          <button className="btn primary"><Icon name="check" size={14} /> Save changes</button>
+          <button className="btn" type="button" onClick={handleReset} disabled={saving || loading}>
+            <Icon name="refresh" size={14} /> Reset
+          </button>
+          <button
+            className="btn primary"
+            type="button"
+            onClick={handleSave}
+            disabled={saving || loading || !agencyId}
+          >
+            {saving ? <Spinner /> : <Icon name="check" size={14} />} Save changes
+          </button>
         </div>
       </div>
+
+      {!agencyId && !loading && (
+        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+          <div className="t-medium">No agency in this session.</div>
+          <div className="t-sm t-muted">
+            Open the app from a GoHighLevel sub-account that is linked to an agency, or
+            assign one in the admin panel.
+          </div>
+        </div>
+      )}
+
+      {statusMessage && (
+        <div
+          className={`card ${statusMessage.tone === 'danger' ? 'card-danger' : ''}`}
+          style={{ padding: 12, marginBottom: 16 }}
+        >
+          <Icon
+            name={statusMessage.tone === 'danger' ? 'alert' : 'info'}
+            size={13}
+          />{' '}
+          {statusMessage.text}
+        </div>
+      )}
 
       <ConnectionsStrip socials={socials} />
 
@@ -66,8 +123,17 @@ export function SocialConfig() {
             <div className="card-title">Description templates</div>
             <div className="card-subtitle">Plain text per network. Click a tag to insert it — tags get replaced with real property data when publishing.</div>
           </div>
-          <button className="btn sm" onClick={() => setTemplates({ ...templates, [activeNet]: initialTemplates[activeNet] || '' })}>
-            <Icon name="copy" size={12} /> Reset to default
+          <button
+            className="btn sm"
+            type="button"
+            onClick={() =>
+              setTemplates({
+                ...templates,
+                [activeNet]: (initialTemplates && initialTemplates[activeNet]) || '',
+              })
+            }
+          >
+            <Icon name="copy" size={12} /> Reset this network
           </button>
         </div>
 

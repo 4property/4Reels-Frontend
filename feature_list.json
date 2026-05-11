@@ -1,0 +1,121 @@
+{
+  "project": "4reels-front",
+  "description": "Frontend React 18 + Vite multi-tenant. Vanilla CSS, sin TypeScript, sin React Query, sin MSW. El mock de lib/api/mock/ es la spec del backend real.",
+  "rules": {
+    "one_feature_at_a_time": true,
+    "require_tests_to_close": true,
+    "require_review_to_close": true,
+    "valid_status": ["pending", "in_progress", "done", "blocked"],
+    "code_lives_in": ["src/", "tests/"],
+    "forbidden": [
+      "TypeScript (*.ts, *.tsx)",
+      "React Query",
+      "MSW",
+      "styled-components",
+      "Tailwind",
+      "CSS-in-JS",
+      "fetch(...) en componentes"
+    ]
+  },
+  "features": [
+    {
+      "id": 2,
+      "name": "align_music_endpoint_front_to_back",
+      "title": "Consume /v1/admin/agencies/{id}/music and remove /music-tracks",
+      "description": "Alinea la pantalla Music del dashboard con el CRUD real del backend: /v1/admin/agencies/{id}/music, shape {music_id, display_name, object_key, duration_seconds, is_default, created_at}, y mock Playwright canonico.",
+      "feature_dir": "src/features/music/",
+      "acceptance": [
+        "src/features/music/api.js usa /music y expone registerTrack, listTracks, inspectTrack, reconfigureTrack, decommissionTrack",
+        "src/features/music/hooks.js expone hooks para los 5 verbos siguiendo el patron de features/brand/hooks.js",
+        "MusicLibrary.jsx y MusicRules.jsx consumen {agency_id, items, count} y music_id",
+        "tests/support/mock-backend.js sirve /v1/admin/agencies/{id}/music con el contrato canonico",
+        "grep -rn 'music-tracks' src tests devuelve 0 hits",
+        "Existe test Playwright minimo de lista + create + delete de musica",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npm run test:e2e -- tests/playwright/music.spec.js si se anade suite dedicada"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 3,
+      "name": "resolve_session_me_endpoint",
+      "title": "Eliminar getCurrentUser y la rama ApiSessionProvider del SessionProvider",
+      "description": "Mirror de la feature 3 de Phase 3 del back (Opcion B). El backend no expone GET /me y no hay tabla users; la identidad efectiva la deriva el front desde el bearer admin token (super-admin) o desde el SSO context de GHL (agency_user). Se elimina sessionApi.getCurrentUser, el componente ApiSessionProvider y el branch que lo seleccionaba; el SessionProvider raiz pasa a renderizar siempre GhlMvpSessionProvider. Se conservan las reglas .session-fallback / .session-fallback.loading porque las consume la pantalla 'Connecting GoHighLevel location...' del provider sobreviviente (desviacion documentada del spike back §6.3 — Opcion A para CSS).",
+      "feature_dir": "src/features/session/",
+      "acceptance": [
+        "src/features/session/api.js no expone getCurrentUser y no contiene literales '/me' ni \"/me\"",
+        "src/features/session/SessionProvider.jsx no contiene ApiSessionProvider ni el import de useApi",
+        "SessionProvider raiz renderiza siempre GhlMvpSessionProvider (sin la condicional GHL_MVP_ENABLED para elegir branch)",
+        "Hooks expuestos (useCurrentUser, usePermissions, useGhlMvp, useCurrentAgency, useCurrentAgencyId) intactos",
+        "session.css conserva .session-fallback y .session-fallback.loading; .session-fallback.error eliminada",
+        "grep -rn '\\bgetCurrentUser\\b' src devuelve 0 hits",
+        "grep -rn \"'/me'\\|\\\"/me\\\"\" src devuelve 0 hits",
+        "grep -rn 'ApiSessionProvider' src devuelve 0 hits",
+        "grep -rn 'session-fallback' src devuelve 3 hits (regla base + .loading en session.css + className en SessionProvider.jsx:139)",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 5,
+      "name": "frontend_admin_auth_lockstep",
+      "title": "Adjuntar autorización real en apiRequest para /v1/admin/*",
+      "description": "Mirror de la feature 5 del backend. El frontend ya apunta a rutas reales, pero src/lib/api/client.js no adjunta Authorization y el backend rechaza /v1/admin/* salvo testing. Esta feature implementa el lado frontend del contrato live: token agency-scoped de sesión GoHighLevel y modo super-admin local explícito sin embeder secretos de producción en el bundle.",
+      "feature_dir": "src/lib/api/, src/features/session/",
+      "acceptance": [
+        "src/lib/api/client.js adjunta Authorization: Bearer <token> cuando la sesión autorizada lo expone",
+        "El token agency-scoped devuelto por /v1/sessions/gohighlevel/session se guarda y limpia de forma controlada en src/features/session/",
+        "Admin-direct mode soporta token super-admin local explícito sin recomendar VITE_ADMIN_API_TOKEN en producción",
+        "Las llamadas /v1/admin/* del flujo feliz no devuelven 401/503 con ADMIN_API_DISABLE_AUTH_FOR_TESTING=false",
+        "No se hardcodean secretos reales en el bundle ni en .env.example",
+        "tests/support/mock-backend.js y Playwright cubren, si aplica, la presencia/ausencia de Authorization",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "Manual: backend real con ADMIN_API_DISABLE_AUTH_FOR_TESTING=false, probar admin-direct y sesión GHL; DevTools sin 401/503 en /v1/admin/*"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 6,
+      "name": "fix_frontend_backend_payload_contract",
+      "title": "Alinear Sources, Brand y Automation con payloads Pydantic estrictos",
+      "description": "Mirror de la feature 6 del backend. Las rutas y verbos coinciden, pero varias pantallas envían campos que el backend rechaza con extra='forbid'. Esta feature corrige los payloads enviados por Admin Sources, Brand y Automation, mueve Platforms al owner correcto (/defaults) o lo documenta, y actualiza mocks/docs obsoletos.",
+      "feature_dir": "src/features/admin/, src/features/brand/, src/features/automation/, src/features/defaults/, tests/",
+      "acceptance": [
+        "Sources envía name y status, no source_name ni source_status",
+        "Editar Sources usa PUT /v1/admin/agencies/{agency_id}/sources/{ingestion_source_id}; crear sigue usando POST /sources",
+        "Brand envía solo primary_color, secondary_color, logo_position, logo_object_key, intro_logo_object_key y font_family",
+        "Brand lee font_family del backend; no envía font, tagline, watermark_enabled, outro_enabled, outro_headline ni outro_sub a /brand",
+        "Automation envía solo approval_required, publish_window_start, publish_window_end, publish_days y trigger_on_status",
+        "Automation no envía publish_mode, platforms, review_window_enabled, review_window_hours, quiet_hours_enabled, skip_weekends, auto_captions, regen_on_update ni review_emails a /automation",
+        "Platforms se persisten desde /defaults o queda documentado que la UI no las guarda desde Automation",
+        "tests/support/mock-backend.js refleja el contrato canónico y no oculta 422 que el backend real produciría",
+        "DOCS.md y .env.example dejan de afirmar que todo está mocked si el cliente live es la fuente real",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "Manual: con backend real, guardar Sources, Brand, Defaults y Automation; comprobar en DevTools que no hay 422"
+      ],
+      "status": "done"
+    }
+  ]
+}

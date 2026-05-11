@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS that generates vertical reels (3:4 / 9:16) from real-estate listings, publishes them to social networks, and tracks the traffic they drive. Integrates with **GoHighLevel** and **WordPress** as listing sources.
 
-The current frontend simulates the full product. Data is mocked in `src/lib/api/mock/store.js`; every screen reflects the contract the backend must fulfill.
+The current frontend talks to the live backend contract through `src/lib/api/client.js`. Playwright tests provide deterministic backend responses with route stubs in `tests/support/mock-backend.js`.
 
 ## End-to-end flow
 
@@ -35,14 +35,21 @@ Full-screen editor opened from a card. Left: live 3:4 preview with scene scrubbe
 Header actions: Regenerate with AI, Export, Publish.
 
 ### Music — `features/music/`
-- **Library**: tracks with waveform, BPM, mood tags, property types. Favorites are the AI selection pool. MP3 upload.
-- **Selection rules**: which tracks the AI may pick by property type and listing status. Fallback to favorites if no rule matches.
+- **Library**: real CRUD against `/v1/admin/agencies/{id}/music`.
+  Tracks use `music_id`, `display_name`, `object_key`, `duration_seconds`,
+  `is_default`, `created_at`.
+- **Selection rules**: default-track pool based on `is_default`, with full
+  library fallback when no default track exists.
 
 ### Social — `features/social/`
 Per-network description templates with `{{variables}}` and live preview. Shows connected networks with handles and char limits.
 
 ### Brand — `features/brand/`
-Identity (logo, colors, heading font), watermark (position + opacity), outro card. Live 3:4 preview reacts to changes.
+Identity (logo, colors, heading font) and logo placement on every reel
+frame. Live 3:4 preview reacts to changes. The PUT body matches the
+`BrandSettingsUpsertPayload` schema exactly: `primary_color`,
+`secondary_color`, `logo_position`, `font_family`, optional
+`logo_object_key` / `intro_logo_object_key`.
 
 ### Defaults — `features/defaults/`
 Render defaults applied to every new reel (overridable per reel). Six sub-tabs: Format & locale, Subtitles style, Video & timing, Intro & outro, Audio, Caption generation.
@@ -53,6 +60,17 @@ Two mutually-exclusive modes:
 - **Review by email** — email to a recipient list with 1-click Approve / Edit / Reject.
 
 Shared: auto-generate subtitles, re-render on upstream data changes.
+
+The page persists across two endpoints (composed in `useAutomationSave`):
+- `PUT /v1/admin/agencies/{id}/automation` carries the canonical
+  `AutomationRulesUpsertPayload` slice (`approval_required` derived from
+  `publishMode`, plus `trigger_on_status`, `publish_window_*`, `publish_days`).
+- `PUT /v1/admin/agencies/{id}/defaults` owns the `platforms` array and the
+  legacy quiet-hours / skip-weekends / captions / regen / review toggles
+  under `settings` with namespaced keys (`automation.quietHoursEnabled`,
+  `automation.skipWeekends`, etc.). The back's `defaults.settings` is
+  jsonb and the back replaces it on PUT, so the hook reads the existing
+  `settings` first and shallow-merges before saving.
 
 ### Admin — `features/admin/`
 Super-admin view. Platform metrics + agencies table. Click a row → drawer with three tabs:
@@ -67,16 +85,16 @@ Invite-agency modal from header.
 ### Notifications — `features/notifications/`
 Modal from the topbar bell. Channels (Email / Slack / SMS), per-recipient event subscriptions (needs approval, published, failed render), delivery frequency (instant / hourly / daily digest).
 
-## Data model (mock)
+## Data model
 
-Defined in `src/lib/api/mock/store.js`.
+The backend contract is represented by the feature `api.js` modules and the Playwright route stubs.
 
 | Entity | Key fields |
 |---|---|
 | `agency` | name, tenantId, plan, logo, color |
 | `socials[]` | id, name, connected, handle |
 | `reels[]` | id, title, address, price, status, publishStatus, scenes, music, kind, type, networks[], tracker |
-| `tracks[]` | id, title, artist, bpm, mood[], propertyTypes[], statuses[], favorite, waveform[] |
+| `tracks[]` | music_id, agency_id, display_name, object_key, duration_seconds, is_default, created_at |
 | `variables[]` | `{{tag}}` catalog |
 | `tenants[]` | agencies (super-admin) |
 | `team[]` | members with role, 2FA, SSO |
@@ -86,14 +104,35 @@ Defined in `src/lib/api/mock/store.js`.
 
 What the real backend must implement:
 
+- **Auth** —
+  - `POST /v1/sessions/gohighlevel/session` returns
+    `{ agency_token, agency_token_expires_at, ... }` when the location
+    is connected (`connected:true` + `agency_id`). The frontend stores
+    `agency_token` in `sessionStorage` (`4reels.adminBearer`) via
+    `src/lib/api/authToken.js` and `apiRequest` attaches it as
+    `Authorization: Bearer <token>` to every `/v1/admin/*` call.
+  - If the location is not yet connected, the response omits both
+    fields and the connect screen stays up.
+  - 503 `AGENCY_AUTH_NOT_CONFIGURED` means the backend is missing
+    `ADMIN_AGENCY_TOKEN_SECRET`. The frontend renders an explicit
+    "Backend admin auth not configured — contact ops" notice rather
+    than a generic error.
+  - Super-admins use the local connect screen (under
+    `VITE_MVP_ADMIN_ENABLED`) to paste an `ADMIN_API_TOKEN`. The token
+    is held in `sessionStorage` only — never persisted in env or
+    bundled. **Never** introduce a `VITE_ADMIN_API_TOKEN` env var:
+    `VITE_*` values are inlined into the public JS bundle.
+  - 401 on any `/v1/admin/*` call clears the cached bearer and bounces
+    the user back to the connect screen. There is no refresh today —
+    the user reconnects the GHL session or repaste the bearer.
 - **Ingestion** — GHL via Private Integration Token + Location ID; WordPress REST + Application Password.
+- **Music** — CRUD at `/v1/admin/agencies/{id}/music`; no `/music-tracks` stub.
 - **Rendering** — input: photos + subtitles + music + brand + defaults; output: MP4 with burned-in subs, intro/outro, watermark, music, optional VO with ducking.
 - **Publishing** — native APIs for IG, TikTok, YT, FB, LinkedIn, GMB. One short link per publish.
 - **Approvals** — transactional emails with signed 1-click URLs.
 - **Outgoing webhooks** (future) — `reel.published`, `reel.failed`, `reel.needs_approval`.
 
 ## Not yet wired
-- Real backend — everything mocked.
 - Auth (login, password reset).
 - Tenant-facing billing.
 - Team panel inside tenant admin.

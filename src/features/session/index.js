@@ -1,4 +1,11 @@
-export { SessionProvider, useCurrentUser, useGhlMvp, usePermissions } from './SessionProvider.jsx';
+export {
+  SessionProvider,
+  useCurrentAgency,
+  useCurrentAgencyId,
+  useCurrentUser,
+  useGhlMvp,
+  usePermissions,
+} from './SessionProvider.jsx';
 export { useCan } from './useCan.js';
 export { Can } from './Can.jsx';
 export { RequirePermission } from './RequirePermission.jsx';

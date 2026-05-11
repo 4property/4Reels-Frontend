@@ -1,0 +1,44 @@
+{
+  "$schema_comment": "Hooks que automatizan la verificación. El harness los ejecuta, no el agente, así que no se pueden saltar.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint --silent 2>&1 | tail -5",
+            "description": "Tras editar o escribir archivos, corre el linter y muestra el resumen."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./init.sh > /tmp/harness_init.log 2>&1 && echo '[harness] init.sh OK' || (echo '[harness] init.sh FALLÓ — revisa /tmp/harness_init.log antes de cerrar' && tail -30 /tmp/harness_init.log)",
+            "description": "Antes de cerrar la sesión, fuerza una verificación completa."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./init.sh)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npm run test:smoke*)",
+      "Bash(npm run test:e2e*)",
+      "Bash(npm run test:visual*)",
+      "Bash(npm run test:report*)",
+      "Bash(npm run dev*)",
+      "Bash(npm run preview*)",
+      "Bash(npx playwright*)",
+      "Bash(npx vite*)",
+      "Bash(npx eslint*)"
+    ]
+  }
+}

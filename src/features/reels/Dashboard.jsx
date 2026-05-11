@@ -10,9 +10,12 @@ import './reels.css';
 /** Main page — filterable list of reels + top metrics. */
 export function Dashboard() {
   const navigate = useNavigate();
-  const openReel = (id) => navigate(`/reels/${id}`);
+  const openReel = (reel) =>
+    navigate(
+      `/reels/${encodeURIComponent(reel.siteId)}/${encodeURIComponent(reel.sourcePropertyId)}`,
+    );
 
-  const { reels, loading, refetch } = useReels();
+  const { reels, loading, agencyId, refetch } = useReels();
   const [approve] = useApproveReel();
   const [reject] = useRejectReel();
 
@@ -36,14 +39,28 @@ export function Dashboard() {
   ];
 
   const metrics = [
-    { label: 'Reels this month', value: '142', delta: '+18', trend: 'up' },
-    { label: 'Published', value: countBy('published'), delta: '+4', trend: 'up' },
+    { label: 'Total reels', value: reels.length, delta: '', trend: 'flat' },
+    { label: 'Published', value: countBy('published'), delta: '', trend: 'flat' },
     { label: 'Needs approval', value: countBy('needs-approval'), delta: '', trend: 'flat' },
     { label: 'Rejected', value: countBy('rejected'), delta: '', trend: 'flat' },
   ];
 
-  const handleApprove = async (id) => { await approve(id); refetch(); };
-  const handleReject = async (id) => { await reject(id); refetch(); };
+  const handleApprove = async (reel) => {
+    await approve({
+      agencyId,
+      siteId: reel.siteId,
+      sourcePropertyId: reel.sourcePropertyId,
+    });
+    refetch();
+  };
+  const handleReject = async (reel) => {
+    await reject({
+      agencyId,
+      siteId: reel.siteId,
+      sourcePropertyId: reel.sourcePropertyId,
+    });
+    refetch();
+  };
 
   return (
     <div>
@@ -56,8 +73,22 @@ export function Dashboard() {
           <p className="page-subtitle">Automatically generated from your listings. Review, edit or let them publish on their own.</p>
         </div>
         <div className="row gap-4">
-          <button className="btn"><Icon name="download" size={14} /> Export</button>
-          <button className="btn primary"><Icon name="plus" size={14} /> New reel</button>
+          <button
+            className="btn coming-soon"
+            type="button"
+            disabled
+            title="CSV / spreadsheet export is on the roadmap."
+          >
+            <Icon name="download" size={14} /> Export
+          </button>
+          <button
+            className="btn primary coming-soon"
+            type="button"
+            disabled
+            title="Manual reel creation is on the roadmap. Reels are auto-created today when a WordPress webhook arrives."
+          >
+            <Icon name="plus" size={14} /> New reel
+          </button>
         </div>
       </div>
 
@@ -92,8 +123,12 @@ export function Dashboard() {
             <Icon name="search" size={14} />
             <input placeholder="Search by title or address" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <button className="btn"><Icon name="filter" size={14} /> Advanced filters</button>
-          <button className="btn"><Icon name="sort" size={14} /> Sort</button>
+          <button className="btn coming-soon" type="button" disabled>
+            <Icon name="filter" size={14} /> Advanced filters
+          </button>
+          <button className="btn coming-soon" type="button" disabled>
+            <Icon name="sort" size={14} /> Sort
+          </button>
         </div>
         <Segmented
           options={[{ value: 'grid', label: 'Grid' }, { value: 'list', label: 'List' }]}
@@ -102,22 +137,38 @@ export function Dashboard() {
         />
       </div>
 
-      {loading && reels.length === 0 ? (
+      {!agencyId && !loading ? (
+        <div className="card" style={{ padding: 24 }}>
+          <div className="t-medium">No agency selected.</div>
+          <div className="t-sm t-muted">
+            Open the app from a GoHighLevel sub-account that is linked to an agency, or
+            assign one in the admin panel.
+          </div>
+        </div>
+      ) : loading && reels.length === 0 ? (
         <div className="empty">Loading…</div>
+      ) : reels.length === 0 ? (
+        <div className="empty">
+          No reels yet. New reels will appear here as soon as a WordPress webhook is
+          processed for this agency.
+        </div>
       ) : view === 'grid' ? (
         <div className="reels-grid">
           {filteredReels.map((r) => (
             <ReelCard
               key={r.id}
               reel={r}
-              onOpen={() => openReel(r.id)}
-              onApprove={handleApprove}
-              onReject={handleReject}
+              onOpen={() => openReel(r)}
+              onApprove={() => handleApprove(r)}
+              onReject={() => handleReject(r)}
             />
           ))}
         </div>
       ) : (
-        <ReelsTable reels={filteredReels} onOpen={openReel} />
+        <ReelsTable
+          reels={filteredReels}
+          onOpen={(reel) => openReel(reel)}
+        />
       )}
     </div>
   );

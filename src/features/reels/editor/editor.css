@@ -108,6 +108,24 @@
   overflow: hidden;
   position: relative;
   box-shadow: var(--shadow-md);
+  background: var(--bg-soft);
+}
+
+.editor-video-player,
+.editor-video-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: black;
+  display: block;
+}
+
+.editor-video-empty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
 }
 
 .editor-preview-brand {
@@ -277,6 +295,16 @@
 }
 .photo-tile.selected { border-color: var(--accent); opacity: 1; }
 .photo-tile.unselected { opacity: 0.45; }
+
+.photo-tile-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  background: var(--bg-soft);
+}
+
+.subtab.tab-stub { opacity: 0.7; }
 
 .photo-badge-index {
   position: absolute;

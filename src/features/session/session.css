@@ -1,4 +1,4 @@
-/* Session provider fallbacks (shown while /me is loading or errored). */
+/* Session provider loading/error states. */
 
 .session-fallback {
   min-height: 100vh;
@@ -8,7 +8,6 @@
   gap: var(--space-4);
 }
 .session-fallback.loading { color: var(--text-muted); }
-.session-fallback.error { color: var(--danger); }
 
 .ghl-mvp-screen {
   min-height: 100vh;

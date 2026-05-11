@@ -30,7 +30,7 @@ export function ReelsTable({ reels, onOpen }) {
         </thead>
         <tbody>
           {reels.map((r) => (
-            <tr key={r.id} className="reels-table-row" onClick={() => onOpen(r.id)}>
+            <tr key={r.id} className="reels-table-row" onClick={() => onOpen(r)}>
               <td onClick={(e) => e.stopPropagation()}>
                 <Checkbox checked={false} onChange={() => {}} />
               </td>

@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+﻿import { Navigate } from 'react-router-dom';
 import { useCan } from './useCan.js';
 
 /**
@@ -6,7 +6,7 @@ import { useCan } from './useCan.js';
  * (module, level), otherwise redirects to `redirectTo` (default `/reels`).
  *
  * Usage in Shell:
- *   <Route path="/admin" element={
+ *   <Route path="/v1/admin" element={
  *     <RequirePermission module="admin">
  *       <AdminView/>
  *     </RequirePermission>

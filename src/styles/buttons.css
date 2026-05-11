@@ -38,6 +38,67 @@
 .btn.danger:hover { background: var(--danger-soft); }
 
 .btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+
+/* Disabled state — used both for native [disabled] and for the `coming-soon`
+ * modifier we put on buttons whose feature is rendered as a roadmap stub but
+ * not yet wired to a backend. The modifier looks identical to a real
+ * disabled control so non-functional UI never feels live. */
+.btn:disabled,
+.btn[disabled],
+.btn.coming-soon {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--text-subtle);
+  filter: grayscale(0.4);
+}
+.btn:disabled:hover,
+.btn[disabled]:hover,
+.btn.coming-soon:hover {
+  background: var(--bg-soft);
+  border-color: var(--border);
+  color: var(--text-subtle);
+}
+.btn.primary:disabled,
+.btn.primary[disabled],
+.btn.primary.coming-soon {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.icon-btn:disabled,
+.icon-btn[disabled],
+.icon-btn.coming-soon {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Marks an entire region as a non-functional roadmap stub: dimmed,
+ * pointer events kept (so users can read tooltips) but interactions feel
+ * inert. Pair with an aria-disabled hint where useful. */
+.feature-stub {
+  opacity: 0.55;
+  filter: grayscale(0.35);
+  position: relative;
+}
+.feature-stub::after {
+  content: 'Coming soon';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  background: var(--bg-soft);
+  border: 1px dashed var(--border);
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  pointer-events: none;
+}
 .btn.lg { height: 40px; padding: 0 16px; font-size: 14px; }
 
 .icon-btn {
