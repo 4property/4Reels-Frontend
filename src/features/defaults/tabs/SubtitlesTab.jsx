@@ -1,6 +1,7 @@
 import { ColorInput } from '../../../shared/ColorInput.jsx';
 import { Segmented } from '../../../shared/Segmented.jsx';
 import { Toggle } from '../../../shared/Toggle.jsx';
+import { AUTOMATION_SETTINGS_KEYS } from '../initialState.js';
 
 const BG_STYLES = [
   { id: 'none', label: 'None' },
@@ -14,12 +15,33 @@ export function SubtitlesTab({ state, set }) {
     subFont, subWeight, subSize, subColor,
     subBgStyle, subBgColor, subBgOpacity,
     subPosition, subAlign, subUppercase, subMaxChars,
-    subHighlightWord, subHighlightColor,
   } = state;
+
+  const autoCaptions = state[AUTOMATION_SETTINGS_KEYS.autoCaptions];
+  // Subdue the per-style cards when AI subtitles are off. The cards stay
+  // interactive (pointer-events left alone) so an agency can still adjust
+  // typography ahead of re-enabling captions.
+  const subduedClass = autoCaptions ? '' : ' subtitles-tab-subdued';
 
   return (
     <>
-      <div className="card">
+      <div className="card" data-testid="auto-captions-card">
+        <div className="card-header">
+          <div>
+            <div className="card-title">Auto-generate AI subtitles</div>
+            <div className="card-subtitle">
+              Off keeps the reel without spoken-word subtitles; the
+              settings below still apply when re-enabled.
+            </div>
+          </div>
+          <Toggle
+            on={autoCaptions}
+            onChange={(v) => set({ [AUTOMATION_SETTINGS_KEYS.autoCaptions]: v })}
+          />
+        </div>
+      </div>
+
+      <div className={`card${subduedClass}`}>
         <div className="card-header"><div><div className="card-title">Typography</div></div></div>
         <div className="card-body stack" style={{ gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12 }}>
@@ -91,7 +113,7 @@ export function SubtitlesTab({ state, set }) {
         </div>
       </div>
 
-      <div className="card">
+      <div className={`card${subduedClass}`}>
         <div className="card-header"><div><div className="card-title">Background & position</div></div></div>
         <div className="card-body stack" style={{ gap: 14 }}>
           <div className="field">
@@ -141,24 +163,6 @@ export function SubtitlesTab({ state, set }) {
             />
           </div>
         </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <div className="card-title">Word highlight</div>
-            <div className="card-subtitle">Karaoke-style: the current word is emphasized as it's spoken.</div>
-          </div>
-          <Toggle on={subHighlightWord} onChange={(v) => set({ subHighlightWord: v })} />
-        </div>
-        {subHighlightWord && (
-          <div className="card-body">
-            <div className="field" style={{ maxWidth: 240 }}>
-              <div className="label">Highlight color</div>
-              <ColorInput value={subHighlightColor} onChange={(v) => set({ subHighlightColor: v })} />
-            </div>
-          </div>
-        )}
       </div>
     </>
   );

@@ -1,6 +1,7 @@
 import { Cover } from '../../shared/Cover.jsx';
 import { Icon } from '../../shared/Icon.jsx';
 import { Toggle } from '../../shared/Toggle.jsx';
+import { EmailListInput } from './EmailListInput.jsx';
 
 export function ReviewModeDetails({ reviewEmails, setReviewEmails, quietHours, setQuietHours }) {
   return (
@@ -18,9 +19,15 @@ export function ReviewModeDetails({ reviewEmails, setReviewEmails, quietHours, s
       </div>
       <div className="card-body stack" style={{ gap: 18 }}>
         <div className="field">
-          <div className="label">Send review email to</div>
-          <input className="input" value={reviewEmails} onChange={(e) => setReviewEmails(e.target.value)} />
-          <div className="hint">Comma-separated. Each recipient gets their own 1-click approve link.</div>
+          <label className="label" htmlFor="review-emails-input">Send review email to</label>
+          <EmailListInput
+            id="review-emails-input"
+            value={reviewEmails}
+            onChange={setReviewEmails}
+          />
+          <div className="hint">
+            Press Enter, comma or space to add. Each recipient gets their own 1-click approve link.
+          </div>
         </div>
 
         <hr className="sep" style={{ margin: 0 }} />

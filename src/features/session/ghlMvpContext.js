@@ -145,7 +145,7 @@ export function buildMvpAdminUser() {
     agencyId: null,
     // Platform super-admins only see the Admin console. The agency-scoped
     // configuration tabs (Reels / Music / Social / Brand / Defaults /
-    // Automation) are hidden â€” the super-admin reaches that data by opening
+    // Automation) are hidden — the super-admin reaches that data by opening
     // an agency from inside the Admin drawer.
     permissions: {
       reels: 'none',
@@ -286,6 +286,7 @@ async function resolveEncryptedHighLevelContext(parentPayload) {
       userId: '',
       locationId: '',
       encryptedContextOnly: true,
+      decryptErrorKind: error?.status === 0 ? 'network' : 'backend',
       decryptError: error?.message || String(error),
     };
   }
@@ -335,9 +336,22 @@ function mergeContexts(contexts, fallbackSource) {
     if (!merged.email && context.email) merged.email = context.email;
     if (context.encryptedContextOnly) merged.encryptedContextOnly = true;
     if (context.userFallback) merged.userFallback = true;
+    if (!merged.decryptError && context.decryptError) merged.decryptError = context.decryptError;
+    if (!merged.decryptErrorKind && context.decryptErrorKind) {
+      merged.decryptErrorKind = context.decryptErrorKind;
+    }
   }
 
-  if (!merged.userId && !merged.locationId && !merged.userName && !merged.email) return null;
+  if (
+    !merged.userId &&
+    !merged.locationId &&
+    !merged.userName &&
+    !merged.email &&
+    !merged.encryptedContextOnly &&
+    !merged.decryptError
+  ) {
+    return null;
+  }
   merged.source = sourceParts.join('+') || fallbackSource;
   return merged;
 }
@@ -415,6 +429,7 @@ function normalizeContext(value, source) {
     email: String(value.email || value.user?.email || '').trim(),
     encryptedContextOnly: Boolean(value.encryptedContextOnly),
     userFallback: Boolean(value.userFallback),
+    decryptErrorKind: String(value.decryptErrorKind || '').trim(),
     decryptError: String(value.decryptError || '').trim(),
   };
 }

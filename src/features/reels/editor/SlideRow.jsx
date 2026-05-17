@@ -15,16 +15,19 @@ const FALLBACK_META = { icon: 'film', color: 'var(--text-muted)', tag: 'SLIDE' }
 export function SlideRow({
   slide, onToggle, onRemove, onUpdate, onOpenReview,
   onDragStart, onDragOver, onDragEnd, dragging,
+  disabled = false, dataTestid,
 }) {
   const meta = META[slide.kind] || FALLBACK_META;
 
   return (
     <div
-      className={`slide-row ${dragging ? 'dragging' : ''} ${!slide.enabled ? 'disabled' : ''}`}
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDragEnd={onDragEnd}
+      className={`slide-row ${dragging ? 'dragging' : ''} ${!slide.enabled ? 'disabled' : ''} ${disabled ? 'slide-row-locked' : ''}`}
+      draggable={!disabled}
+      onDragStart={disabled ? undefined : onDragStart}
+      onDragOver={disabled ? undefined : onDragOver}
+      onDragEnd={disabled ? undefined : onDragEnd}
+      data-testid={dataTestid}
+      aria-disabled={disabled ? 'true' : undefined}
     >
       <span className="drag-handle">
         <Icon name="grip" size={14} />
@@ -47,6 +50,8 @@ export function SlideRow({
             className="input slide-title-input"
             value={slide.label}
             onChange={(e) => onUpdate({ label: e.target.value })}
+            disabled={disabled}
+            data-testid={dataTestid ? `${dataTestid}-label` : undefined}
           />
           {slide.source === 'default' && <span className="badge">From defaults</span>}
         </div>
@@ -57,30 +62,46 @@ export function SlideRow({
               <span className="slide-review-stars">{'★'.repeat(slide.rating || 5)}</span>
               <span style={{ color: 'var(--text)' }}>{slide.author || 'Aoife M.'}</span>
               <span>· {slide.duration}s</span>
-              <button className="btn sm ghost slide-review-edit" onClick={onOpenReview}>
+              <button
+                className="btn sm ghost slide-review-edit"
+                onClick={onOpenReview}
+                disabled={disabled}
+              >
                 <Icon name="edit" size={10} /> Edit
               </button>
             </div>
           ) : (
-            <button className="btn sm slide-review-cta" onClick={onOpenReview}>
+            <button
+              className="btn sm slide-review-cta"
+              onClick={onOpenReview}
+              disabled={disabled}
+            >
               <Icon name="link" size={11} /> Paste Google review URL
             </button>
           )
         ) : (
           <div className="slide-meta">
-            <span className="mono">{slide.duration.toFixed(1)}s</span>
+            <span className="mono">{(slide.duration || 0).toFixed(1)}s</span>
             <input
               className="slide-meta-range"
-              type="range" min="1" max="8" step="0.5" value={slide.duration}
+              type="range" min="1" max="8" step="0.5" value={slide.duration || 0}
               onChange={(e) => onUpdate({ duration: +e.target.value })}
+              disabled={disabled}
+              data-testid={dataTestid ? `${dataTestid}-duration` : undefined}
             />
           </div>
         )}
       </div>
 
       <div className="row gap-2">
-        <Toggle on={slide.enabled} onChange={onToggle} />
-        <button className="icon-btn" onClick={onRemove} title="Remove">
+        <Toggle on={slide.enabled} onChange={onToggle} disabled={disabled} />
+        <button
+          className="icon-btn"
+          onClick={onRemove}
+          title="Remove"
+          disabled={disabled}
+          data-testid={dataTestid ? `${dataTestid}-remove` : undefined}
+        >
           <Icon name="trash" size={13} />
         </button>
       </div>

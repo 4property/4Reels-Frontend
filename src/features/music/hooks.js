@@ -20,10 +20,17 @@ export function useTracks() {
   };
 }
 
-export function useRegisterTrack() {
-  return useMutation(({ agencyId, body }) => {
+/**
+ * Multipart upload for a new music track. The caller is responsible for
+ * building the `FormData` (fields: `file`, `display_name`, `is_default`).
+ * The backend derives `object_key` from the persisted blob and `duration_seconds`
+ * from ffprobe, so the client never sends those.
+ */
+export function useUploadTrack() {
+  return useMutation(({ agencyId, formData }) => {
     if (!agencyId) return Promise.reject(new Error('No agency_id is available.'));
-    return musicApi.registerTrack(agencyId, body);
+    if (!formData) return Promise.reject(new Error('No upload payload provided.'));
+    return musicApi.uploadTrack(agencyId, formData);
   });
 }
 

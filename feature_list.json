@@ -5,8 +5,16 @@
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
     "require_review_to_close": true,
-    "valid_status": ["pending", "in_progress", "done", "blocked"],
-    "code_lives_in": ["src/", "tests/"],
+    "valid_status": [
+      "pending",
+      "in_progress",
+      "done",
+      "blocked"
+    ],
+    "code_lives_in": [
+      "src/",
+      "tests/"
+    ],
     "forbidden": [
       "TypeScript (*.ts, *.tsx)",
       "React Query",
@@ -114,6 +122,732 @@
       "verification": [
         "./init.sh",
         "Manual: con backend real, guardar Sources, Brand, Defaults y Automation; comprobar en DevTools que no hay 422"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 7,
+      "name": "pinterest_and_reels_cover_preview",
+      "title": "Soportar Pinterest y corregir portadas de /reels",
+      "description": "Añade Pinterest como red social visible/seleccionable en el frontend y corrige la pestaña /reels para que las tarjetas usen la foto principal de la propiedad como portada estática, sin cargar ni reproducir el video mock en hover.",
+      "feature_dir": "src/app/providers/, src/features/{admin,defaults,reels}/, src/shared/",
+      "acceptance": [
+        "Pinterest aparece en la lista de redes conectables/seleccionables junto al resto de plataformas",
+        "Los presets de redes, defaults, límites de descripción e iconografía reconocen pinterest",
+        "Las tarjetas y tabla de /reels pasan la URL real de featured_image_url como src de Cover",
+        "Las tarjetas y tabla de /reels no usan video=\"hover\" ni cargan /assets/property/reel.mp4 al pasar el ratón",
+        "Si no hay featured_image_url, se mantiene un placeholder estable en lugar de una caja negra",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 8,
+      "name": "agency_default_descriptions_ui",
+      "title": "UI de descripciones por defecto por plataforma en el AgencyConfigDrawer",
+      "description": "Cablear el frontend para que el admin pueda editar agency_social_templates por plataforma. Hoy esos campos solo existen en el backend (GET/PUT /v1/admin/agencies/{id}/social-templates) y se consumen en el pipeline, pero no hay UI. Añadir un subtab o sección en AgencyConfigDrawer.jsx con un textarea por plataforma que persista description_template y hashtags vía el socialTemplatesApi.",
+      "feature_dir": "src/features/admin/, src/features/defaults/, src/lib/api/",
+      "acceptance": [
+        "Subtab nuevo lista las 6 plataformas (tiktok, instagram, linkedin, youtube, facebook, gbp) con un textarea cada una",
+        "El save persiste vía PUT /v1/admin/agencies/{id}/social-templates",
+        "Mock-backend handler para social-templates",
+        "Smoke test Playwright del save round-trip"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run lint && npm run build",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 9,
+      "name": "agency_logo_upload",
+      "title": "Habilitar upload de logo en BrandConfig (botón hoy disabled)",
+      "description": "BrandConfig.jsx:156-164 tiene un botón disabled con texto 'Logo upload not implemented yet'. El backend va a exponer POST /v1/admin/agencies/{id}/brand/logo (multipart) y a aceptar logo_object_key en PUT /brand. Añadir un <LogoUploader> que use FormData, muestre preview de la imagen subida y permita 'Remove logo' (PUT con logo_object_key: null).",
+      "feature_dir": "src/features/brand/",
+      "acceptance": [
+        "Botón de upload habilitado, acepta JPG/PNG con validación cliente",
+        "Preview de la imagen tras subir",
+        "Botón 'Remove logo' funcional",
+        "Mock-backend handler para el endpoint multipart",
+        "Smoke test cubriendo upload + remove"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run lint && npm run build",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 10,
+      "name": "wire_automation_publish_window_to_ghl_schedule",
+      "title": "Indicador de próximo slot programado tras aprobar reel",
+      "description": "El backend va a calcular un scheduleDate en función de agency_automation_rules y mandarlo a GHL cuando el approve cae fuera de la ventana configurada. El front ya persiste los rules en PUT /v1/admin/agencies/{id}/automation; falta indicar al usuario, tras aprobar un reel, cuándo se va a publicar realmente (si scheduled_at viene en la respuesta del approve, mostrarlo).",
+      "feature_dir": "src/features/reels/, src/features/automation/",
+      "acceptance": [
+        "Tras un POST /approve exitoso, si la respuesta trae scheduled_at, el ReelEditor muestra 'Publicará el dd/mm/yyyy a las HH:MM' en vez de 'Reel approved'",
+        "Si scheduled_at es null/missing, el mensaje sigue siendo 'Reel approved' (comportamiento actual)",
+        "Smoke test del flujo con scheduleDate"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run lint && npm run build",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 11,
+      "name": "unescape_html_entities_everywhere",
+      "title": "Decodificar HTML entities en todas las vistas que pintan titles",
+      "description": "WordPress emite &#8217;, &amp;, etc. en title.rendered. Hoy se pinta crudo en ReelCard.jsx:46, ReelsTable.jsx:48, ReelEditor.jsx:317 y en la búsqueda de Dashboard.jsx:28. Añadir utilidad src/shared/decodeHtmlEntities.js (vanilla con DOMParser o lib aprobada en review) y aplicarla en los 4 componentes.",
+      "feature_dir": "src/shared/, src/features/reels/",
+      "acceptance": [
+        "src/shared/decodeHtmlEntities.js exporta función pura decode(s) con tests unitarios (10+ casos)",
+        "Los 4 componentes citados muestran 'Jacob's Island' en lugar de 'Jacob&#8217;s Island'",
+        "El filtro de búsqueda del Dashboard compara strings decodificados"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run lint && npm run build",
+        "node --test tests/unit/decodeHtmlEntities.unit.js",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 12,
+      "name": "approve_button_label_and_drop_publish_stub",
+      "title": "Renombrar Approve a 'Approve & Publish' y eliminar el botón Publish coming-soon",
+      "description": "El backend ya publica al recibir POST /approve (regenerate_reel.py:255 fuerza approval_required=False y encola el job reel_publish que dispara MEDIA PUBLISH a las redes conectadas vía GoHighLevel). En el editor de reels coexisten 'Approve' (que aprueba+publica) y un 'Publish' deshabilitado con tooltip 'Manual publishing on the roadmap'. Esa coexistencia es confusa: los usuarios creen que Approve solo aprueba y Publish es el paso siguiente, cuando en realidad Approve ya hace ambas cosas. Renombrar a 'Approve & Publish' (y el aria-label correspondiente) y eliminar la rama else con el botón coming-soon en ReelEditor.jsx EditorHeader.",
+      "feature_dir": "src/features/reels/editor/",
+      "acceptance": [
+        "src/features/reels/editor/ReelEditor.jsx muestra label 'Approve & Publish' (no solo 'Approve') en el botón primario del header cuando publishStatus === 'needs-approval'",
+        "El botón Publish coming-soon disabled (rama else del ternario canApproveOrReject) queda eliminado; cuando publishStatus !== 'needs-approval' el header no muestra ningún botón de publicación",
+        "El tooltip antiguo 'Manual publishing from the editor is on the roadmap...' ya no aparece en el bundle (grep -rn 'Manual publishing from the editor' src/ devuelve 0 hits)",
+        "Los smoke tests existentes que comprueban el approve siguen verdes (ajustar selector de texto si lo usaban literalmente 'Approve')",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 13,
+      "name": "fix_mojibake_in_source_files",
+      "title": "Reparar mojibake (UTF-8 double-encoded) en archivos JSX/JS del frontend",
+      "description": "Múltiples archivos del frontend contienen secuencias UTF-8 doblemente codificadas (latin1↔utf-8). Caracteres como — … ' · € ≤ → ⌘ ✓ aparecen como 'â€—', 'â€¦', 'â€™', 'Â·', 'â‚¬', 'â‰¤', 'â†’', 'âŒ˜', 'âœ”' tanto en strings renderizadas (placeholder de búsqueda, samples de variables, atajos de teclado, 'Loading…', separadores '·' en headers, fallback '—' del editor) como en comentarios JSDoc. El usuario los ve en la UI. Inventario en `progress/explore_mojibake_inventory.md`: 13 archivos (11 en src/, 2 en tests/), 38 ocurrencias. Fix: aplicar la inversión bytes.encode('latin-1').decode('utf-8') a las secuencias mojibake usando reemplazos explícitos por pares para no corromper caracteres UTF-8 ya correctos (algunos archivos pueden tener un mix).",
+      "feature_dir": "src/app/, src/features/, src/lib/api/, tests/",
+      "acceptance": [
+        "grep -rn -P 'â€|Â·|â‚¬|â‰¤|â†|âŒ˜|âœ' src/ tests/ devuelve 0 hits tras el fix",
+        "Las strings renderizadas que el usuario veía corruptas ahora muestran el carácter correcto: '—' (em dash), '…' (ellipsis), '·' (middle dot), '€' (euro), '⌘' (command), '≤' (less or equal), '→' (right arrow)",
+        "src/app/Topbar.jsx muestra placeholder 'Search reels, properties…' y la kbd hint '⌘K'",
+        "src/features/reels/editor/ReelEditor.jsx:331 muestra '· {reel.address}' y los fallbacks '—' en Render/Workflow",
+        "src/app/providers/TenantProvider.jsx samples muestran '2-bed apartment · Cranford Court' y '€385,000'",
+        "Los archivos modificados siguen siendo UTF-8 válido (file --mime-encoding devuelve utf-8)",
+        "Diff revisable: solo cambian los caracteres mojibake, no introduce cambios espurios en lógica ni en indentación",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual: abrir la UI en navegador y comprobar topbar (placeholder + ⌘K) y editor de reel (separador · en header, fallbacks —)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 14,
+      "name": "map_backend_publish_status_values",
+      "title": "Mapear los publish_status reales del backend (pending_review, pending_publish, skipped)",
+      "description": "El backend devuelve `publish_status` con valores que el frontend no reconoce: 'pending_review' (cuando el reel está esperando aprobación humana, ver publish_reel.py:225), 'pending_publish' (entre el approve y la publicación real, admin_reels_router.py:169) y 'skipped' (publish_reel.py:188,324). El frontend solo mapea 'awaiting_review' a 'needs-approval' (publishStatus.js:23), así que cuando llega 'pending_review' cae al fallback genérico, la UI no lo reconoce como aprobable y NO renderiza los botones Approve en ReelCard ni en ReelEditor. Síntoma reportado por el usuario: en /reels los reels pendientes no muestran ningún botón para publicar. Fix: aceptar 'pending_review' como sinónimo de 'awaiting_review' (mantener 'awaiting_review' por compatibilidad), añadir mapeo de 'pending_publish' a un nuevo badge 'publishing' y 'skipped' a un nuevo badge 'skipped' en StatusBadge.jsx. Actualizar el comentario de copy en AgencyConfigDrawer.jsx que aún dice 'awaiting_review'.",
+      "feature_dir": "src/features/reels/, src/shared/, src/features/admin/, tests/unit/",
+      "acceptance": [
+        "src/features/reels/publishStatus.js mapea 'pending_review' a 'needs-approval' (además de 'awaiting_review' por compatibilidad)",
+        "src/features/reels/publishStatus.js mapea 'pending_publish' a 'publishing' y 'skipped' a 'skipped'",
+        "El comentario JSDoc al inicio de publishStatus.js refleja los valores reales que el backend devuelve hoy (pending_review en lugar de awaiting_review, mencionando también pending_publish y skipped)",
+        "src/shared/StatusBadge.jsx añade entradas 'publishing' (cls 'info', label 'Publishing…') y 'skipped' (cls '', label 'Skipped')",
+        "src/features/admin/AgencyConfigDrawer.jsx:810 (o donde el copy hable de 'awaiting_review') usa 'pending_review' para reflejar lo que ve el usuario en el backend",
+        "Existe tests/unit/publishStatus.unit.js que prueba: awaiting_review→needs-approval, pending_review→needs-approval, pending_publish→publishing, published→published, partial→published, approved→published, skipped→skipped, rejected→rejected, failed→failed, fallback con string vacío→pending, fallback con valor desconocido→ese valor",
+        "ReelCard.jsx y ReelEditor.jsx siguen mostrando Approve/Reject (sin cambios funcionales; el ternario sigue comparando contra 'needs-approval' tras el map)",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde",
+        "node --test tests/unit/publishStatus.unit.js termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "node --test tests/unit/publishStatus.unit.js",
+        "npm run test:smoke",
+        "Manual: con un reel en pending_review, comprobar que en /reels la tarjeta muestra los botones Approve/Reject y que el badge dice 'Needs approval' (no 'pending_review' crudo)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 15,
+      "name": "templates_tab_agency_render_template_selection",
+      "title": "Nueva pestaña 'Templates' para seleccionar la plantilla de render de la agencia",
+      "description": "Añade un tab nuevo 'Templates' en la navegación principal del front que permita al usuario de agencia ver y seleccionar la plantilla de render que usarán todos los reels de su agencia. Conecta con los endpoints admin ya existentes en el backend: GET /v1/admin/agencies/{agency_id}/render-templates (lista de packs disponibles + current_template_id) y PUT /v1/admin/agencies/{agency_id}/render-template (selecciona uno). La pantalla muestra una galería con tarjetas (display_name, description, preview_images[], badge 'Selected' en la activa) y un botón 'Use this template' que dispara el PUT. El shape exacto está en modules/configuration/transport/http/render_templates_router.py del backend. Más adelante se diseñarán plantillas reales — esta feature solo prepara la UI y el cableado de API; el contenido lo añadirá el backend al catálogo.",
+      "feature_dir": "src/features/templates/, src/app/, src/lib/api/mock/, src/styles/, tests/",
+      "acceptance": [
+        "src/app/pages.js incluye una entrada { id: 'templates', path: '/templates', label: 'Templates', icon: <icono apropiado>, requires: { module: 'brand' } } (o el módulo que permita el acceso del agency user; revisar permisos existentes)",
+        "src/app/Shell.jsx (y MobileNav si aplica) rutean /templates al nuevo componente",
+        "src/features/templates/api.js expone listRenderTemplates(agencyId) y selectRenderTemplate(agencyId, templateId) usando lib/api/client.js (sin fetch directo)",
+        "src/features/templates/hooks.js expone useRenderTemplates(agencyId) y useSelectRenderTemplate(agencyId) siguiendo el patrón de features/brand/hooks.js o features/defaults/hooks.js",
+        "src/features/templates/TemplatesPage.jsx renderiza la lista (template_id, display_name, description, preview_images[].image_url + alt, badge 'Selected' si selected===true, botón 'Use this template' deshabilitado en la activa)",
+        "El botón dispara selectRenderTemplate y refresca la lista; toast/feedback de éxito o error siguiendo el patrón del resto de features",
+        "src/features/templates/index.js exporta TemplatesPage",
+        "src/lib/api/mock/handlers/ añade handler para GET /v1/admin/agencies/{id}/render-templates y PUT /v1/admin/agencies/{id}/render-template con el shape exacto del backend (template_id, display_name, description, status, sort_order, preview_images:[{kind,image_url,alt}], layout_variant, selected). PUT devuelve { status:'saved', agency_id, render_template:{...selected:true} }",
+        "DOCS.md § 'Backend contract' documenta estos dos endpoints como ya implementados en el backend (referenciar render_templates_router.py)",
+        "Estilos en src/styles/ (un archivo dedicado, p. ej. templates.css) sin styled-components ni Tailwind",
+        "tests/support/mock-backend.js sirve los dos endpoints con datos de ejemplo (al menos 2 plantillas con preview_images)",
+        "Test Playwright mínimo que (1) carga la pestaña Templates, (2) ve al menos 2 tarjetas, (3) hace click en 'Use this template' de una no activa, (4) la badge 'Selected' se mueve a la nueva",
+        "grep -rn 'fetch(' src/features/templates devuelve 0 hits",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npm run test:e2e -- tests/playwright/templates.spec.js si se añade suite dedicada",
+        "Manual: backend real arriba, abrir /templates, comprobar que aparece la lista, cambiar selección y verificar con GET que current_template_id cambió"
+      ],
+      "status": "done",
+      "review": "progress/review_templates_tab.md"
+    },
+    {
+      "id": 16,
+      "name": "automation_scheduling_ui_hold_quiet_skip",
+      "title": "Pestaña Automation: mover hold/quiet/skip a /automation y añadir time pickers para quiet hours",
+      "description": "La pestaña Automation persiste hoy hold/quiet/skip como claves opacas en /defaults.settings (automation.reviewWindowEnabled, automation.reviewWindowHours, automation.quietHoursEnabled, automation.skipWeekends). El back ignora esas claves al calcular el scheduleDate → publicación inmediata aunque el usuario configure 'esperar antes de publicar'. Esta feature mueve los tres controles al PUT /v1/admin/agencies/{id}/automation con los campos nuevos del back (feature 13 del backend): hold_window_seconds:int, quiet_hours_enabled:bool, skip_weekends:bool, y reusa publish_window_start/end (horas permitidas, inverso de quiet) + publish_days. Añade time pickers <input type='time'> para start/end de quiet hours (defaults 22:00 / 07:00). Hidrata el state desde /automation. Plan detallado en progress/plan_automation_scheduling_ui.md. Bloqueada por: feature 13 del backend (sin schema desplegado, los PUT devuelven 422 por extra='forbid').",
+      "feature_dir": "src/features/automation/, src/lib/api/mock/, tests/, tests/support/",
+      "depends_on": "4Reels-Backend feature 13 (extend_automation_rules_with_hold_quiet_skip) desplegada en :8001",
+      "acceptance": [
+        "src/features/automation/AutoPublishDetails.jsx añade dos <input type='time'> visibles cuando el toggle de quiet hours está activo (defaults 22:00 y 07:00); mantiene HoldPicker y toggle de skip weekends",
+        "src/features/automation/hooks.js:buildAutomationBody mapea holdWindowEnabled+holdWindowHours → hold_window_seconds, quietHoursEnabled → quiet_hours_enabled + publish_window_start/end (invertido), skipWeekends → skip_weekends + publish_days (mon-fri o mon-sun)",
+        "src/features/automation/AutomationConfig.jsx hidrata holdWindowEnabled/holdWindowHours/quietHours*/skipWeekends desde /automation (no desde /defaults.settings). Las claves automation.* del settings blob dejan de leerse",
+        "src/features/automation/useAutomationSave.js NO escribe ya las claves automation.reviewWindowEnabled/.reviewWindowHours/.quietHoursEnabled/.skipWeekends en defaults.settings",
+        "tests/support/mock-backend.js: FORBIDDEN_KEYS['automation'] ya no incluye quiet_hours_enabled ni skip_weekends; el handler PUT /automation acepta y echo-back los nuevos campos (hold_window_seconds, quiet_hours_enabled, skip_weekends) y los devuelve coherentes en GET",
+        "tests/reel_approve_schedule.spec.js extendido: caso 'hold 1h' verifica que el banner muestra un scheduled_at ~1h en el futuro",
+        "tests/automation_scheduling.spec.js nuevo: 3 casos (quiet hours a las 23:00 → mañana 07:00; skip weekends sábado 10:00 → lunes; hold 2h + skip weekends viernes 23:00 → lunes 07:00) con system clock mock",
+        "DOCS.md § Automation refleja el nuevo contrato (hold/quiet/skip viajan en /automation; quiet_hours_* representado en back como publish_window invertido; horas interpretadas en local de agency.timezone)",
+        "grep -rn 'fetch(' src/features/automation devuelve 0 hits",
+        "npm run lint, npm run build, npm run test:smoke verdes"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run lint && npm run build",
+        "npx playwright test tests/reel_approve_schedule.spec.js tests/automation_scheduling.spec.js",
+        "Manual contra back live :8001 (con features 13-15 del back desplegadas): configurar hold 1h + quiet 22:00-07:00 + skip weekends; aprobar reel sábado 10:00 hora Dublin; banner debe decir 'Publicará el lunes a las 07:00'; verificar en GHL Social Planner que el post aparece como Scheduled con esa fecha"
+      ],
+      "status": "done",
+      "review": "progress/review_16_automation_scheduling_ui_hold_quiet_skip.md"
+    },
+    {
+      "id": 18,
+      "name": "social_templates_ui_close_gaps",
+      "started_at": "2026-05-14",
+      "title": "/social: completar variables expuestas, validar variables desconocidas en mock y test 422/limit",
+      "description": "El backend de social-templates (/v1/admin/agencies/{id}/social-templates) acepta 16 variables canónicas (ver modules/configuration/domain/social_templates_variables.py:21-40) y rechaza con 422 SOCIAL_TEMPLATE_UNKNOWN_VARIABLE cualquier desconocida. La UI de /social hoy solo expone 13 variables como chips clicables y el mock no rechaza variables inválidas, así que los tests E2E nunca ejercitan el error path real. Esta feature: (1) añade neighborhood_tag, agent_email y property_url a STATIC_VARIABLES de TenantProvider; (2) hace que el mock-backend valide variables desconocidas usando la misma lista canónica y devuelva 422 con el shape del back ({error:'SOCIAL_TEMPLATE_UNKNOWN_VARIABLE', details:{platform:[var,...]}}); (3) añade tests Playwright para (a) intento de guardar {{bad_var}} → banner de error con el código, (b) exceder NETWORK_LIMITS[net] → contador en rojo y CTA Save aún disponible si la UI no bloquea pero documentar comportamiento; (4) extiende los samples de las 3 variables nuevas en STATIC_VARIABLES con valores realistas.",
+      "feature_dir": "src/app/providers/, tests/support/, tests/",
+      "acceptance": [
+        "src/app/providers/TenantProvider.jsx:STATIC_VARIABLES incluye neighborhood_tag (sample 'Cranford Court'), agent_email (sample 'sales@4pm.ie'), property_url (sample 'https://example.com/property/123')",
+        "Tras el cambio, useVariables() devuelve 16 entries y el orden refleja el agrupamiento del backend (property fields, agent fields, links)",
+        "tests/support/mock-backend.js:handleSocialTemplates valida cada description_template recibido en PUT con la misma regex {{var}} del backend y rechaza con 422 + body {error:'SOCIAL_TEMPLATE_UNKNOWN_VARIABLE', details:{platform:['bad_var',...]}} si alguna variable no está en la lista canónica de 16",
+        "Existe constante ALLOWED_SOCIAL_TEMPLATE_VARIABLES exportada/compartida entre el provider (chips) y el mock (validación) para que un solo cambio cubra ambos sitios",
+        "tests/social_templates.spec.js (o nuevo archivo) cubre: guardar {{nonexistent_var}} → banner de error con 'SOCIAL_TEMPLATE_UNKNOWN_VARIABLE' visible",
+        "tests/social_templates.spec.js cubre: tipear texto que excede NETWORK_LIMITS[instagram] (2200 chars) → contador <span> con clase 'over' visible",
+        "tests/social_templates.spec.js cubre: las 3 variables nuevas (neighborhood_tag, agent_email, property_url) aparecen como chips clicables y al hacer click se insertan en el textarea",
+        "grep -rn 'STATIC_VARIABLES' src devuelve solo el provider (no duplicada en componentes)",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra back live :8001: en /social escribir {{property_url}}, Save → 200; cambiar a {{not_a_var}}, Save → banner rojo con código del backend"
+      ],
+      "status": "done",
+      "review": "progress/review_18_social_templates_ui_close_gaps.md"
+    },
+    {
+      "id": 20,
+      "name": "social_templates_ui_hashtags_and_title",
+      "title": "/social: añadir editor de hashtags y title_template por red, alineado con back",
+      "description": "El backend ya persiste title_template (Text) y hashtags (Array<Text>) en agency_social_templates pero el PUT del front solo manda description_template y la UI no permite editar esos dos campos. Esta feature (cross-repo con feature 18 del backend) amplía la UI: por cada red, además del textarea de descripción, añade un input de title_template (1 línea, opcional) y un editor de chips para hashtags (input que parsea espacios y comas, con autocomplete '#'). El payload PUT pasa de {templates:{platform:string}} a {templates:{platform:{description_template, title_template, hashtags[]}}} si el back actualiza el contrato; si no, se mantienen como campos adicionales que el back ignora hasta que se entregue su contraparte.",
+      "feature_dir": "src/features/social/, src/app/providers/, tests/support/, tests/",
+      "depends_on": "4Reels-Backend feature 20 (extend social_templates payload con title_template + hashtags) desplegada en :8001",
+      "acceptance": [
+        "src/features/social/SocialConfig.jsx muestra, por cada red, además del textarea de descripción: un <input type='text'> para title_template (con label 'Title (opcional)' y placeholder por red) y un editor de hashtags inline (chips visibles con × para eliminar, input que crea uno con Enter/coma/espacio, normaliza con # al inicio)",
+        "src/features/social/api.js:saveSocialTemplates envía el nuevo shape {templates:{platform:{description_template, title_template, hashtags}}} en el PUT (el backend acepta tanto este shape rico como el plano string para backward-compat)",
+        "src/features/social/hooks.js:useSocialTemplates hidrata los 3 campos desde items[] de la respuesta GET (cada item tiene {platform, description_template, title_template, hashtags, created_at, updated_at}). NO leer de templates{} (legacy, solo description string)",
+        "Los hashtags se muestran como chips con la misma identidad visual que los tag-chips de variables",
+        "Validación cliente: hashtags se normalizan a /^#[\\w-]+$/; los inválidos se descartan al añadir con un toast pequeño",
+        "tests/support/mock-backend.js:handleSocialTemplates acepta y persiste el nuevo shape y refleja en GET",
+        "Test Playwright: editar title_template + añadir 3 hashtags + guardar → PUT body contiene los 3 campos; recargar y los chips aparecen",
+        "npm run lint, build, test:smoke verdes"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con feature 20 del back desplegada): configurar title y hashtags por red; verificar en GHL Social Planner que aparecen en el post"
+      ],
+      "status": "done",
+      "review": "progress/review_20_social_templates_ui_hashtags_and_title.md"
+    },
+    {
+      "id": 21,
+      "name": "per_reel_description_override_ui",
+      "title": "Editor de reel: pestaña Descriptions editable, persiste override por plataforma antes de aprobar",
+      "description": "Hoy la descripción rendida (template + variables de la property) se guarda en reels.publish_target_snapshot.descriptions_by_platform y es read-only desde el editor. El usuario quiere poder ajustar el caption de UN reel concreto antes de aprobarlo, sin tocar la template global de la agencia. Esta feature (cross-repo con feature 21 del back) amplía la pestaña 'Descriptions' del ReelEditor para que cada red tenga un textarea editable hidratado con el snapshot, y al guardar persista vía PATCH /v1/admin/reels/{reel_id}/descriptions (endpoint nuevo del back, feature 21). El job de publish del worker, al ejecutar, lee el override si existe y lo usa en vez de re-renderizar.",
+      "feature_dir": "src/features/reels/editor/, src/lib/api/, tests/support/, tests/",
+      "depends_on": "4Reels-Backend feature 21 (PATCH /v1/admin/reels/{reel_id}/descriptions + publish worker honra override) desplegada en :8001",
+      "acceptance": [
+        "src/features/reels/editor/ReelEditor.jsx pestaña Descriptions muestra un panel por red conectada con textarea editable, contador NETWORK_LIMITS[net] y botón Save por red O Save All",
+        "El textarea se hidrata con reel.publish_target_snapshot.descriptions_by_platform[platform] al cargar, y si existe reel.descriptions_override[platform] ese override gana sobre el snapshot (precedencia que ya implementa el back)",
+        "Save dispara PATCH /v1/admin/agencies/{agency_id}/reels/{site_id}/{source_property_id}/descriptions con body {descriptions_by_platform: {platform: text}}. Body {} limpia el override a NULL (replace semantics del back).",
+        "Tras Save, el editor refleja el override; si la agencia luego edita la template global en /social, los reels con override NO cambian (el back ya garantiza esto en content_fingerprint)",
+        "Si el reel NO está en publish_status in ('needs-approval','pending_review','pending',''), los textareas son read-only y se muestra un banner explicativo; intento de PATCH desde DevTools → 409 REEL_NOT_EDITABLE manejado con feedback",
+        "Si el usuario intenta guardar override para una plataforma que no está en agency_reel_defaults.platforms, el back devuelve 422 PLATFORM_NOT_ENABLED; la UI ya filtra a 'redes conectadas' así que esto solo debería pasar manipulando DevTools — testear que se muestra un toast/feedback con el código",
+        "tests/support/mock-backend.js sirve PATCH con shape {status:'saved', reel_id (o tupla), descriptions_override:{...}} y devuelve 409 REEL_NOT_EDITABLE / 422 PLATFORM_NOT_ENABLED según estado del reel",
+        "Test Playwright: abrir un reel needs-approval, editar la descripción de instagram, Save → mock recibe PATCH con body correcto",
+        "Test Playwright: tras override, recargar el editor → la descripción editada persiste",
+        "npm run lint, build, test:smoke verdes"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con feature 21 del back desplegada): tomar un reel needs-approval, editar descripción de instagram, Approve & Publish, verificar en GHL que el post usa el override y no la template global"
+      ],
+      "status": "done",
+      "review": "progress/review_21_per_reel_description_override_ui.md"
+    },
+    {
+      "id": 22,
+      "name": "agency_music_upload",
+      "title": "/music Library: file input multipart en vez de pegar object_key",
+      "description": "Hoy MusicLibrary.jsx pide al usuario tres datos: display_name, object_key (texto libre, p.ej. 'agencies/ckp/music/sunset-drive.mp3') y duration_seconds. El usuario tiene que haber subido el .mp3 al object storage del back por otra vía y pegar el key — flujo roto. El backend feature 22 añade POST /v1/admin/agencies/{id}/music/upload (multipart). Esta feature reemplaza el form actual por un file input/dropzone, elimina los campos object_key y duration_seconds del UI (ambos derivados server-side), mantiene display_name + is_default, y conecta el submit al nuevo endpoint con FormData.",
+      "feature_dir": "src/features/music/",
+      "depends_on": "4Reels-Backend feature 22 (agency_music_upload) desplegada en :8001",
+      "acceptance": [
+        "src/features/music/MusicLibrary.jsx form: <input type='file' accept='audio/mpeg,audio/mp4,audio/wav,audio/x-wav'> obligatorio en alta, label 'Audio file (mp3/m4a/wav, máx 20MB)', display_name obligatorio, checkbox is_default. Campos object_key y duration_seconds (input numérico) eliminados del UI.",
+        "src/features/music/api.js: nuevo uploadTrack(agencyId, formData) que llama apiRequest('/v1/admin/agencies/{id}/music/upload', {method:'POST', body: FormData}). Mantener listTracks, inspectTrack, reconfigureTrack, decommissionTrack. Retirar registerTrack del export (el endpoint metadata-only deja de existir).",
+        "src/features/music/hooks.js: useUploadTrack reemplaza useRegisterTrack; useReconfigureTrack/useDecommissionTrack/useTracks intactos.",
+        "El form muestra feedback de progreso (mientras el upload está en curso, deshabilitar submit y mostrar 'Uploading…').",
+        "Manejo de errores: 400 MIME inválido → 'Formato no soportado. Use mp3, m4a o wav.'; 413 → 'Archivo demasiado grande (máx 20MB)'; 400 MUSIC_TRACK_AUDIO_INVALID → 'No se pudo procesar el audio (¿archivo corrupto?)'; otros 4xx → mensaje del backend.",
+        "El listado tras un upload exitoso muestra la nueva pista con duration_seconds derivada del archivo (no de input de usuario) y object_key como un identificador opaco (no editable, opcional: mostrarlo en monospace pequeño).",
+        "El editor (modo edit) para una pista existente solo permite cambiar display_name e is_default. El campo object_key/duration_seconds aparece como read-only (gris).",
+        "Test Playwright (tests/playwright/music_upload.spec.js): subir un fixture .mp3 pequeño, verificar que aparece en la lista con duration_seconds > 0.",
+        "grep -rn 'object_key' src/features/music devuelve hits únicamente para lectura (mostrar/comparar), no para escritura desde el form.",
+        "grep -rn 'fetch(' src/features/music devuelve 0 hits.",
+        "npm run lint termina verde",
+        "npm run build termina verde",
+        "npm run test:smoke termina verde"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con back feature 22 desplegada): subir un .mp3, comprobar que aparece la pista con duración correcta y se reproduce vía el endpoint .../file/{filename} si se implementa preview"
+      ],
+      "status": "done",
+      "review": "progress/review_22_agency_music_upload.md"
+    },
+    {
+      "id": 23,
+      "name": "wire_render_to_agency_music_tracks_noop_front",
+      "title": "(noop front) wire_render_to_agency_music_tracks — sin cambios obligatorios en el front",
+      "description": "Mirror simbólico de la feature 23 del backend para preservar el patrón cross-repo same-id. El backend reorienta el renderer a leer agency_music_tracks en vez de assets/music/ y seedea cada agencia con las 4 NCS tracks. El frontend no necesita cambios: la pantalla /music ya muestra las tracks de la agencia activa via /v1/admin/agencies/{id}/music. Esta entrada existe únicamente para que el feature_list.json del front documente que la 23 fue back-only.",
+      "feature_dir": "(none)",
+      "depends_on": "4Reels-Backend feature 23 (wire_render_to_agency_music_tracks) desplegada en :8001",
+      "acceptance": [
+        "Tras el deploy de la feature 23 del back, la pestaña /music sigue listando las tracks de la agencia con normalidad (incluyendo las 4 NCS seedeadas).",
+        "Subir un reel post-deploy genera un MP4 que usa una de las tracks listadas (verificación manual, ya que el frontend no tiene visibilidad directa del filter graph).",
+        "Esta entrada se cierra inmediatamente como done una vez confirmado el comportamiento manual, sin commits de código."
+      ],
+      "verification": [
+        "Manual contra :8001 (con back feature 23 desplegada): comprobar que /music lista 4 tracks NCS para una agencia preexistente y que al ingestar una property el reel resultante usa una de ellas"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 24,
+      "name": "agency_music_selection_rules",
+      "title": "/music Rules: conectar el Toggle de fallback_to_full_library al GET/PUT /defaults",
+      "description": "MusicRules.jsx tiene un Toggle 'Fall back to full library if no default track exists' con onChange={() => {}} — decorativo. El backend feature 24 persiste la regla en agency_reel_defaults.settings.music.selection_rules.fallback_to_full_library. Esta feature hidrata el Toggle desde GET /defaults y persiste cambios con PUT /defaults preservando el resto del settings blob.",
+      "feature_dir": "src/features/music/, src/features/defaults/",
+      "depends_on": "4Reels-Backend feature 24 (agency_music_selection_rules) desplegada en :8001",
+      "acceptance": [
+        "src/features/music/MusicRules.jsx Toggle conectado: lee fallback_to_full_library de defaults.settings.music.selection_rules (default true si ausente) y persiste con PUT /defaults preservando el resto del settings blob.",
+        "Loading state mientras GET /defaults está en curso; error state si el PUT falla.",
+        "Si el GET /defaults devuelve un blob sin music.selection_rules, el Toggle se muestra en true (default) sin escribir nada hasta que el usuario lo cambie explícitamente.",
+        "Reutilizar el useDefaults/useUpdateDefaults existente; NO duplicar fetch directo al endpoint.",
+        "Test Playwright (tests/playwright/music_rules.spec.js): toggle off → PUT body contiene settings.music.selection_rules.fallback_to_full_library=false; recargar mantiene el estado.",
+        "Si la página /music estuviera sin agencia seleccionada el Toggle queda disabled (paridad con Library).",
+        "npm run lint, build, test:smoke verdes"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con back feature 24 desplegada): toggle off, refrescar y comprobar persistencia; ingestar property en agencia con default pool vacía y toggle off → backend marca reel como failed con código MUSIC_NO_DEFAULT_TRACKS"
+      ],
+      "status": "done",
+      "review": "progress/review_24_agency_music_selection_rules.md"
+    },
+    {
+      "id": 25,
+      "name": "per_reel_music_override",
+      "title": "/reels: selector de pista por reel (override) — PATCH /v1/admin/reels/{id}/music",
+      "description": "El campo music:'' muerto en src/features/reels/hooks.js:101 es vestigio del mock retirado. El backend feature 25 añade reels.music_id nullable + PATCH /v1/admin/reels/{reel_id}/music. Esta feature añade un selector de pista en la card/tabla de /reels (y/o en el ReelEditor) con las pistas de la agencia + opción 'Agency default pool'. Al cambiar dispara el PATCH y re-encola el render. Si publish_status no es needs-approval/pending_review, el selector aparece disabled con tooltip explicativo (paridad con feature 21 descriptions override).",
+      "feature_dir": "src/features/reels/, src/features/music/, src/lib/api/",
+      "depends_on": "4Reels-Backend feature 25 (per_reel_music_override) desplegada en :8001",
+      "acceptance": [
+        "src/features/reels/ReelCard.jsx (o ReelsTable.jsx, decisión por UX): selector dropdown 'Music' con opción 'Agency default pool' + lista de tracks de la agencia (useTracks reusada de features/music).",
+        "Al cambiar el dropdown dispara PATCH /v1/admin/reels/{reel_id}/music con {music_id: <id|null>}; UI muestra spinner pequeño durante la request y mensaje 'Re-rendering with new track…' al éxito.",
+        "Si publish_status not in ['needs-approval','pending_review'] el dropdown se muestra disabled con tooltip 'La pista no se puede cambiar tras aprobar/publicar'.",
+        "Manejo de errores: 409 RESOURCE_LOCKED → banner explicativo; 403/404 cross-agency → 'Pista no disponible'; otros → mensaje del back.",
+        "El campo music:'' muerto en hooks.js:101 se reemplaza por music_id y un music denormalizado {display_name} que la API devuelve via include o un fetch puntual; eliminar todo rastro del mock.",
+        "Test Playwright: abrir un reel needs-approval, cambiar la pista a una concreta → el PATCH llega con music_id correcto; cambiar a 'Agency default pool' → PATCH con music_id=null.",
+        "Test Playwright: reel approved → dropdown disabled.",
+        "grep -rn \"music: ''\" src devuelve 0 hits tras la feature.",
+        "npm run lint, build, test:smoke verdes"
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con back feature 25 desplegada): subir 2 tracks, ingestar property, esperar reel needs-approval, asignar la pista #2 desde el UI, verificar que tras un par de minutos el reel renderizado usa esa pista y que el dropdown queda disabled cuando el reel se aprueba"
+      ],
+      "status": "done",
+      "review": "progress/review_25_per_reel_music_override.md"
+    },
+    {
+      "id": 26,
+      "name": "review_emails_chip_editor",
+      "title": "/automation: chip editor multi-email para reviewEmails (sustituye el input CSV plano)",
+      "description": "Hoy `reviewEmails` en `/automation` es un `<input>` plano CSV en ReviewModeDetails.jsx:22 sin validación. El back feature 26 prepara la infra de email y feature 27 cablea el envío real. Esta feature reemplaza el input plano por un `EmailListInput` (chips estilo HashtagsEditor de feature 20 — basado en `SocialConfig.jsx:466-566`): commit con Enter/coma/espacio, normalización (trim+lowercase), dedup silenciosa, validación con regex `EMAIL_PATTERN` (`^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$`), error inline danger-banner. El state pasa de string CSV a `list[str]`; `useAutomationSave.js` envía el array directo a `defaults.settings.automation.reviewEmails` (el back acepta ambos shapes para compat). El mock-backend extiende su validación para rechazar shapes inválidos (e.g. número, dict) con 422 mientras acepta string CSV legacy y list[str].",
+      "feature_dir": "src/features/automation/, src/lib/utils/, tests/support/, tests/",
+      "depends_on": "4Reels-Backend feature 26 (email infrastructure) + feature 27 (review_requested subscriber) deployadas en :8001",
+      "acceptance": [
+        "src/lib/utils/email.js exporta EMAIL_PATTERN (regex), isValidEmail(value:string)→bool, normaliseEmail(raw:string)→string (trim + lowercase).",
+        "src/features/automation/EmailListInput.jsx (o componente análogo) renderiza chips con × para eliminar; input con commit on Enter/coma/espacio/blur; Backspace-borra-último si input vacío; validación regex al añadir + dedup; error inline al rechazar.",
+        "src/features/automation/ReviewModeDetails.jsx usa EmailListInput en lugar del <input> plano (línea 22 actual).",
+        "src/features/automation/AutomationConfig.jsx state cambia a list<string> en lugar de string CSV; hidratación desde defaults.settings: si llega CSV legacy lo split-ea por coma + trim + filter no-empty; si llega array lo usa directo.",
+        "src/features/automation/useAutomationSave.js manda settings.automation.reviewEmails como array de strings directo (back acepta).",
+        "src/features/defaults/initialState.js: AUTOMATION_SETTINGS_KEYS.reviewEmails default value cambia a [] (array vacío) en lugar de '' (string vacío).",
+        "tests/support/mock-backend.js handler /defaults: acepta settings.automation.reviewEmails como list[str] o string CSV legacy; rechaza tipos no válidos con 422 INVALID_EMAIL_LIST.",
+        "Test Playwright tests/review_emails.spec.js: navegar /automation → mode review → añadir 3 emails (uno inválido se descarta inline) → Save → PUT body contiene array de 2 emails normalizados; recargar mantiene chips.",
+        "grep -rn 'reviewEmails.*split' src devuelve solo la rama legacy de hidratación; no se usa split en el save.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npx playwright test tests/review_emails.spec.js",
+        "Manual contra :8001 (con back 26+27 desplegadas): configurar 2 reviewEmails, ingestar property con approval_required, esperar pending_review, verificar que ambos correos llegan con link al editor del reel."
+      ],
+      "status": "done",
+      "review": "progress/review_26_review_emails_chip_editor.md"
+    },
+    {
+      "id": 28,
+      "name": "brand_dynamic_fonts_and_reset_defaults",
+      "title": "/brand: dropdown de fuentes poblado por GET /fonts + botón 'Reset to default' en colores y fuente",
+      "description": "El dropdown de fuentes en BrandConfig.jsx hoy es un array hardcoded de 5 (Inter/Söhne/Manrope/Plus Jakarta Sans/Helvetica). Söhne y Helvetica son ficticias (no en disco), Inter es la única real, y font_family es dead-end (back no lo usa). El back feature 28 baja Manrope+Plus Jakarta Sans+Montserrat+Poppins+Roboto a assets/fonts/, expone GET /v1/admin/fonts y cablea el font_family al render. Esta feature: (1) reemplaza el array FONTS hardcoded por una llamada a GET /fonts via nuevo `src/features/brand/fontsApi.js` + hook `useAvailableFonts`. (2) Añade botón 'Reset to default' (icono ↺ o texto) junto a cada selector (primary_color, secondary_color, font_family) que manda `null` en el PUT, devolviendo el campo al fallback del webhook/global. (3) UI hint visual 'Using default (webhook fallback)' cuando el campo está en null tras el GET. (4) Mock-backend extiende handler /fonts.",
+      "feature_dir": "src/features/brand/, src/lib/api/, tests/support/, tests/",
+      "depends_on": "4Reels-Backend feature 28 (font_catalog_endpoint) deployada en :8001",
+      "acceptance": [
+        "src/features/brand/fontsApi.js + useAvailableFonts() hook: listFonts() llama GET /v1/admin/fonts, cache durante la sesión, devuelve {items, loading, error}.",
+        "src/features/brand/BrandConfig.jsx: dropdown de font_family popula desde useAvailableFonts(); incluye option 'Default (system fallback)' value='' (que se serializa a null en el PUT body).",
+        "src/features/brand/BrandConfig.jsx: junto a cada ColorInput (primary, secondary) y al dropdown de fuente, botón 'Reset to default' (con tooltip 'Use webhook color' o 'Use system font') que setea el state a null y muestra placeholder 'Using default'.",
+        "buildBrandBody: si state.primaryColor === null → body.primary_color = null (no se omite la key). Igual para secondary_color y font_family.",
+        "Si el GET /brand devuelve campos null, el UI los muestra como 'Using default' (con el value real renderizado en preview futuro si lo hubiera).",
+        "tests/support/mock-backend.js: handler GET /v1/admin/fonts devuelve 6 items con shape correcto; PUT /brand acepta null en los 3 campos; PUT con font_family fuera del catálogo → 422 UNKNOWN_FONT_FAMILY.",
+        "tests/support/mock-backend.js: el FONTS hardcoded del front desaparece (grep 'Söhne\\|Plus Jakarta Sans' src devuelve 0 hits en BrandConfig.jsx).",
+        "Test Playwright tests/brand_dynamic_fonts.spec.js: cargar /brand → dropdown se popula via GET /fonts; seleccionar Manrope → PUT con font_family='Manrope' → 200; click 'Reset to default' en font → PUT con font_family=null → 200; mismo para colores.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npx playwright test tests/brand_dynamic_fonts.spec.js",
+        "Manual contra :8001 (con back feature 28 desplegada): /brand muestra 6 fuentes en dropdown; seleccionar Manrope → guardar → verificar en BBDD que brand.font_family='Manrope'; click reset → null en BBDD."
+      ],
+      "status": "done",
+      "review": "progress/review_28_brand_dynamic_fonts_and_reset_defaults.md"
+    },
+    {
+      "id": 30,
+      "name": "social_per_platform_publish_toggle",
+      "title": "/social: toggle per-plataforma para activar/desactivar publicación, persistido en defaults.platforms",
+      "description": "Hoy el frontend /social muestra una `ConnectionsStrip` con los iconos de las redes conectadas (solo lectura, sin control). El backend tiene `agency_reel_defaults.platforms` (JSONB array) que controla a qué redes publica el pipeline al ingestar — la lista se gestiona desde `/defaults` (selector existente) y por defecto incluye las 7 plataformas tras feature 19. Esta feature añade en `/social` un toggle por red ('Publish on this network') que activa/desactiva la entrada correspondiente de `defaults.platforms` y persiste vía el endpoint existente `PUT /v1/admin/agencies/{id}/defaults`. El back NO requiere cambios — solo se reusa el campo existente. UX: junto al chip de cada red (en ConnectionsStrip o en una sección dedicada), un toggle Switch que pinta verde cuando está dentro del array. Si la red no está conectada (no hay social account), el toggle aparece deshabilitado con un tooltip 'Connect this network first'. La pestaña de templates de una red desactivada sigue editable (para que el usuario pueda preparar plantillas) pero con un badge visual 'Disabled'.",
+      "feature_dir": "src/features/social/, src/features/defaults/ (lectura), tests/support/, tests/",
+      "depends_on": "Ninguno (backend feature 6 y feature 19 ya entregaron el campo platforms y el endpoint PUT /defaults).",
+      "acceptance": [
+        "src/features/social/SocialConfig.jsx lee `defaults.platforms` (via useReelDefaults o defaultsApi.getDefaults) y deriva el estado enabled/disabled por red.",
+        "Cada red en la lista del strip (o en una sección dedicada de la página) tiene un toggle 'Publish' que refleja si la red está en el array.",
+        "Toggle ON → red presente en el array; OFF → red ausente. El cambio se persiste vía PUT /v1/admin/agencies/{id}/defaults con el array `platforms` actualizado (preservando el resto de campos del payload defaults).",
+        "Si la red NO está conectada (useSocials().connected === false), el toggle aparece disabled con tooltip explicativo.",
+        "Las subtabs de templates de redes desactivadas se muestran atenuadas (clase CSS `disabled` o `off`) pero siguen siendo clickables para editar las plantillas.",
+        "El cambio se refleja inmediatamente en la UI (optimistic update); si el PUT falla, rollback + banner de error.",
+        "tests/support/mock-backend.js: el handler PUT /defaults ya acepta el campo platforms; verificar que el round-trip funciona y que la respuesta GET refleja el array nuevo.",
+        "Test Playwright tests/social_publish_toggles.spec.js: (a) toggle off de una red conectada → PUT body contiene `platforms` sin esa red; (b) toggle on de una red previamente desactivada → PUT body contiene la red; (c) reload mantiene el estado; (d) toggle de una red no conectada → disabled.",
+        "Si `defaults.platforms` viene null/ausente, asumir el array por defecto del back (7 plataformas tras feature 19).",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npx playwright test tests/social_publish_toggles.spec.js",
+        "Manual contra :8001: en /social desactivar 'tiktok' → verificar via GET /defaults que platforms no contiene 'tiktok'; ingestar property → reel no se publica en TikTok."
+      ],
+      "status": "done",
+      "review": "progress/review_30_social_per_platform_publish_toggle.md"
+    },
+    {
+      "id": 31,
+      "name": "subtitles_tab_cleanup_and_autocaptions_switch",
+      "title": "/defaults Subtitles: switch autoCaptions, quitar Karaoke, quitar LivePreview",
+      "description": "El backend feature 31 cabla todas las settings de subtítulos al render. Esta feature limpia la UI: (1) Añade un switch 'Auto-generate AI subtitles' al inicio de SubtitlesTab (refleja defaults.settings['automation.autoCaptions']); cuando está off, los demás controles se atenúan pero siguen editables (para preparar config cuando se reactive). (2) Elimina la card 'Word highlight' (karaoke) — quitando los inputs subHighlightWord y subHighlightColor de SubtitlesTab + initialState. (3) Elimina la invocación <LivePreview /> de ReelDefaultsConfig.jsx; el componente LivePreview.jsx puede quedar como deadcode (lo elimina el próximo housekeeping) o eliminarse en este mismo PR (decisión del implementer).",
+      "feature_dir": "src/features/defaults/, tests/",
+      "depends_on": "4Reels-Backend feature 31 (subtitle_settings_wiring) deployada en :8001 para que el render aplique los settings.",
+      "acceptance": [
+        "src/features/defaults/tabs/SubtitlesTab.jsx tiene un Toggle 'Auto-generate AI subtitles' al principio que escribe en state['automation.autoCaptions'].",
+        "Cuando autoCaptions = false, las cards Typography y Background&position se muestran atenuadas (clase 'subdued' u 'off') con un hint 'AI subtitles are disabled — these settings will apply when re-enabled'.",
+        "La card 'Word highlight' (subHighlightWord + subHighlightColor) se elimina por completo de SubtitlesTab.jsx.",
+        "src/features/defaults/initialState.js: claves subHighlightWord y subHighlightColor eliminadas.",
+        "src/features/defaults/ReelDefaultsConfig.jsx: <LivePreview /> ya no se invoca. La página /defaults muestra solo el sidenav + content sin la columna de preview.",
+        "src/features/defaults/defaults.css: media queries y reglas relacionadas con .defaults-content/.defaults-preview ajustadas (si quedan huérfanas).",
+        "grep -rn 'subHighlightWord\\|subHighlightColor\\|LivePreview' src devuelve 0 hits (o solo en LivePreview.jsx si se conserva deadcode marcado).",
+        "Smoke test Playwright (puede ser extensión de tests existentes de /defaults): toggle autoCaptions → PUT contiene automation.autoCaptions=false; recargar mantiene; el contenido del tab Subtitles ya no tiene 'Word highlight' ni 'Karaoke'.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 (con back feature 31 desplegada): toggle autoCaptions off + Save → ingestar property → el reel se renderiza sin subtítulos en el ffmpeg drawtext."
+      ],
+      "status": "done",
+      "review": "progress/review_31_subtitles_tab_cleanup_and_autocaptions_switch.md"
+    },
+    {
+      "id": 32,
+      "name": "reels_list_pagination_and_filters_ui",
+      "title": "/reels: paginación (page+pageSize+total) y filtros básicos (workflow_state, publish_status, búsqueda)",
+      "description": "Hoy Dashboard llama reelsApi.list(agencyId) sin paginación: el back devuelve hasta limit=50 sin offset ni total real. Esta feature cablea la paginación real del back (4Reels-Backend feature 32 cross-repo) y añade filtros + búsqueda. (1) reelsApi.list acepta {page, pageSize, workflowState, publishStatus, q} y los manda como query params; consume {items, count_total, page, page_size, has_more}. (2) Dashboard.jsx + ReelsTable.jsx muestran selector page_size (10/25/50, default 25), navegación ‹ › con 'Showing A–B of N', filtros dropdown para workflow_state y publish_status, input search con debounce 300ms sobre title/slug. (3) State paginación en URL (?page=2&page_size=25&workflow_state=needs_approval&q=cranford) usando el patrón ya existente del tab router; compartir link reproduce el mismo estado. (4) Cambio de filtro o page_size resetea page a 1. (5) Loading skeleton sólo en la tabla, sin parpadear el header ni los métricos.",
+      "feature_dir": "src/features/reels/, tests/",
+      "depends_on": "4Reels-Backend feature 32 (reels_list_pagination_and_filters) desplegada en :8001.",
+      "acceptance": [
+        "src/features/reels/api.js: reelsApi.list({agencyId, page, pageSize, workflowState, publishStatus, q}) construye query params correctamente y solo envía los que están definidos.",
+        "src/features/reels/hooks.js: useReels acepta los filtros + paginación y expone {items, countTotal, page, pageSize, hasMore, loading, refresh}.",
+        "Dashboard.jsx muestra controles de paginación: '‹ Showing A–B of N ›' + dropdown page_size (10/25/50), filtros dropdown y search input.",
+        "Cambiar page → nueva request al back; cambiar filtro o pageSize → resetea page=1.",
+        "State paginación + filtros persiste en URL search params; pegar un link con ?page=3&q=cranford reproduce el mismo estado al cargar.",
+        "Search input debounced 300ms (sin spam de requests por keystroke).",
+        "Cuando count_total=0 muestra empty state diferenciado del estado loading.",
+        "Tests Playwright: navegación page 1 → 2 actualiza tabla; filtro workflow_state filtra; q búsqueda filtra; URL refleja estado.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 32 deployada: cargar /reels, paginar, filtrar por workflow_state=needs_approval, buscar 'cranford', recargar con ?page=2 en URL y verificar que respeta."
+      ],
+      "status": "done",
+      "review": "progress/review_32.md"
+    },
+    {
+      "id": 33,
+      "name": "agency_outro_upload_ui",
+      "title": "/defaults Intro & Outro: cablear upload real de OUTRO al backend",
+      "description": "Reemplaza el state local del card Outro en IntroOutroCard.jsx por llamadas reales al backend (4Reels-Backend feature 33). (1) src/features/defaults/api.js expone outroUpload(file), outroDelete(), outroFileUrl(agencyId) usando el patrón de feature 9 logo upload (FormData multipart, sin JSON Content-Type). (2) IntroOutroCard.jsx en modo 'Outro' muestra progress bar durante upload, error states (size/duration/mime), y el chip 'replace/trash' enchufado al DELETE. (3) Toggle 'Enabled' persiste outro_enabled en defaults vía el PUT existente. (4) Selector Source: 'Uploaded video' habilitado; 'Brand card' y 'None' presentes pero 'Brand card' deshabilitado con tooltip 'Coming soon'. (5) Validación cliente: tamaño ≤50MB, mime video/mp4|quicktime, duración ≤10s vía probe local con <video> + onloadedmetadata. (6) Cuando outro_source!='uploaded' el preview muestra placeholder coherente con la card de Brand/None ya existente.",
+      "feature_dir": "src/features/defaults/, tests/",
+      "depends_on": "4Reels-Backend feature 33 (agency_outro_video_upload_and_render) desplegada en :8001.",
+      "acceptance": [
+        "src/features/defaults/api.js: outroUpload, outroDelete, outroFileUrl alineados con feature 9 (logo upload) y feature 22 (music upload). Sin VITE_ADMIN_API_TOKEN ni secretos en bundle.",
+        "IntroOutroCard.jsx en modo 'Outro' usa multipart upload real; chip de archivo refleja size + duration del backend; replace y trash funcionan.",
+        "Toggle Enabled del card Outro persiste outro_enabled en defaults (PUT existente del endpoint defaults).",
+        "Source segmented: 'Uploaded video' habilitado; 'Brand card' disabled + tooltip 'Coming soon'; 'None' habilitado y limpia outro_object_key vía DELETE.",
+        "Validación cliente bloquea archivos >50MB, mime no-video, duración >10s con error inline (no crashea ni manda el upload).",
+        "Tests Playwright: subir un MP4 corto → ver chip; toggle off+on conserva archivo; trash dispara DELETE.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 33: subir MP4 5s, ver preview; toggle off+save+on+save; trash; ingestar property con outro_enabled → ver outro al final del reel renderizado."
+      ],
+      "status": "done"
+    },
+    {
+      "id": 34,
+      "name": "agency_intro_upload_ui",
+      "title": "/defaults Intro & Outro: cablear upload real de INTRO al backend",
+      "description": "Simétrico a feature 33 pero para el card Intro. Reusa el mismo cliente multipart (introUpload, introDelete, introFileUrl) y la misma UX. Implementer puede factorizar un componente UploadVideoCard si encuentra duplicación significativa con outro; criterio del reviewer. La única diferencia funcional con la feature 33 es la copy ('Plays at the start of every reel' vs 'Plays at the end') y los endpoints (/intro/... en lugar de /outro/...).",
+      "feature_dir": "src/features/defaults/, tests/",
+      "depends_on": "4Reels-Backend feature 34 (agency_intro_video_upload_and_render) desplegada en :8001. Conviene mergear DESPUÉS de feature 33 del front para factorizar UploadVideoCard si procede.",
+      "acceptance": [
+        "src/features/defaults/api.js: introUpload, introDelete, introFileUrl simétricos a feature 33.",
+        "IntroOutroCard.jsx en modo 'Intro' usa multipart upload real con el mismo patrón que outro.",
+        "Toggle Enabled del card Intro persiste intro_enabled en defaults.",
+        "Source segmented igual que feature 33 (Uploaded habilitado, Brand card disabled, None habilitado).",
+        "Validación cliente igual que feature 33.",
+        "Tests Playwright similares a feature 33 pero para intro.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 34: subir MP4 3s como intro; ingestar property con intro_enabled → ver intro al principio del reel renderizado."
+      ],
+      "status": "done"
+    },
+    {
+      "id": 35,
+      "name": "per_reel_photos_override_ui",
+      "title": "/reels editor: persistir reorder y selección de fotos (PATCH photos)",
+      "description": "Hoy PhotosPanel.jsx del editor solo modifica state local de React: reorder con setPhotos y toggle selected con setPhotos. No persiste. Esta feature cablea esos cambios al endpoint PATCH /v1/admin/agencies/{id}/reels/{site}/{prop}/photos (4Reels-Backend feature 35). (1) reelsApi.patchReelPhotos(agencyId, siteId, sourcePropertyId, [{position, selected}, ...]). (2) PhotosPanel: el drop final del reorder y el click-to-toggle disparan PATCH (debounce 500ms para agrupar varios moves). (3) Optimistic UI: el state local cambia inmediatamente; en fail rollback + toast. (4) Tras un PATCH exitoso, el render se re-encola en back y el back devuelve render_status='pending' en la siguiente lectura del reel; UI muestra badge 'Re-rendering...' hasta que vuelva a 'done'. (5) Si el reel está en workflow_state=approved o published, el PATCH devuelve 409 y la UI muestra error 'Cannot edit a reel that has already been approved' (mismo patrón que feature 25 música).",
+      "feature_dir": "src/features/reels/editor/, src/features/reels/, tests/",
+      "depends_on": "4Reels-Backend feature 35 (per_reel_photos_override) desplegada en :8001.",
+      "acceptance": [
+        "src/features/reels/api.js: patchReelPhotos consume {photos: [{position, selected}, ...]}; pydantic extra=forbid en back exige body exacto.",
+        "src/features/reels/editor/PhotosPanel.jsx: reorder dispara PATCH con debounce 500ms; toggle selected dispara PATCH con debounce 500ms; varios cambios en <500ms se agrupan en una sola request.",
+        "Optimistic UI con rollback en fail; toast de error con mensaje del back.",
+        "Tras PATCH exitoso, UI lee render_status y muestra badge 'Re-rendering...' hasta done.",
+        "409 (reel approved/published) se muestra como banner persistente en el editor con copy 'Cannot edit a reel that has already been approved'.",
+        "Tests Playwright: drop-reorder dispara PATCH; toggle dispara PATCH; 409 se renderiza correctamente.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 35: abrir editor de un reel needs_approval, reordenar fotos, ver render_status='pending', esperar 'done', verificar que el reel renderizado refleja el nuevo orden."
+      ],
+      "status": "done"
+    },
+    {
+      "id": 36,
+      "name": "per_reel_subtitles_override_ui",
+      "title": "/reels editor: persistir edits de subtítulos (texto y tiempos) vía PATCH subtitles",
+      "description": "Hoy SubtitlesPanel.jsx edita en state local con setSubtitles (texto, in/out time). Esta feature cablea al PATCH /v1/admin/agencies/{id}/reels/{site}/{prop}/subtitles (4Reels-Backend feature 36). (1) reelsApi.patchReelSubtitles(agencyId, siteId, sourcePropertyId, [{index, text, in_seconds, out_seconds}, ...]). (2) SubtitlesPanel: cada edit (texto, in, out, add, delete) marca dirty; auto-save debounced 1s. (3) Validación cliente estricta (mirrors back): in_seconds>=0, out_seconds>in_seconds, no overlap, text 1..200, indices únicos y monotónicos; on violación → inline error rojo + no PATCH. (4) Optimistic UI + rollback en fail. (5) Tras PATCH exitoso, render se re-encola y badge 'Re-rendering...' hasta done. (6) 409 si reel approved/published, mismo patrón que feature 35.",
+      "feature_dir": "src/features/reels/editor/, src/features/reels/, tests/",
+      "depends_on": "4Reels-Backend feature 36 (per_reel_subtitles_override) desplegada en :8001.",
+      "acceptance": [
+        "src/features/reels/api.js: patchReelSubtitles consume {cues: [{index, text, in_seconds, out_seconds}, ...]}.",
+        "src/features/reels/editor/SubtitlesPanel.jsx: edits disparan PATCH (debounce 1s o save explícito según implementer); validación cliente bloquea in>=out y muestra warning de overlap.",
+        "Optimistic UI con rollback en fail.",
+        "Tras PATCH exitoso, badge 'Re-rendering...' hasta render_status='done'.",
+        "409 se muestra como banner en el editor.",
+        "Tests Playwright: editar texto de un cue dispara PATCH; mover tiempos dispara PATCH; 409 se renderiza.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 36: abrir editor, cambiar texto de un cue, esperar PATCH, ver render_status='pending' → 'done', verificar que el reel renderizado muestra el nuevo texto."
+      ],
+      "status": "done"
+    },
+    {
+      "id": 37,
+      "name": "per_reel_slides_override_ui",
+      "title": "/reels editor: persistir edits del manifest de slides (orden de escenas y duraciones)",
+      "description": "Hoy SlidesPanel.jsx / SlideRow permiten editar la lista de escenas (no solo fotos: también voiceover scenes, intro/outro scenes). Cambios en state local. Esta feature cablea al PATCH /v1/admin/agencies/{id}/reels/{site}/{prop}/slides (4Reels-Backend feature 37). (1) reelsApi.patchReelSlides(agencyId, siteId, sourcePropertyId, [{slide_id, position, duration_seconds, kind, ...}, ...]). (2) SlidesPanel: reorder de escenas, edit de duration, toggle visibility/skip disparan PATCH (debounce 500ms). (3) Validación cliente: suma de durations <= target_duration_seconds (de defaults); warning si excede pero deja persistir (back decide). (4) Optimistic + rollback. (5) Render re-encolado, badge 'Re-rendering...'. (6) 409 si publicado.",
+      "feature_dir": "src/features/reels/editor/, src/features/reels/, tests/",
+      "depends_on": "4Reels-Backend feature 37 (per_reel_slides_override) desplegada en :8001. Después de features 35 y 36 para reaprovechar utilidades comunes (render-status badge, 409 banner, optimistic helper) que las anteriores hayan factorizado.",
+      "acceptance": [
+        "src/features/reels/api.js: patchReelSlides consume el shape del manifest acordado con back feature 37.",
+        "SlidesPanel/SlideRow: reorder y edit dispara PATCH con debounce 500ms.",
+        "Validación cliente avisa si la suma de durations excede target_duration; permite continuar (decisión del usuario).",
+        "Optimistic + rollback; badge 'Re-rendering...' hasta done; 409 banner si reel publicado.",
+        "Tests Playwright: reorder de slides dispara PATCH; edit duration dispara PATCH.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "Manual contra :8001 con back feature 37: reordenar slides, esperar 'Re-rendering...', verificar que el reel reflectea el nuevo orden de escenas."
+      ],
+      "status": "done"
+    },
+    {
+      "id": 39,
+      "name": "live_state_sync_reels_dashboard_and_editor",
+      "title": "Toaster global + Dashboard refresca tras cerrar editor con mutaciones (el reel modificado sube al top sin recargar)",
+      "description": "Dos problemas combinados que el usuario percibe como uno: (1) el Dashboard de /reels no se invalida tras mutaciones hechas dentro del editor overlay (photos, music, subtitles, slides, descriptions, approve, reject desde el editor), por lo que el reel modificado NO sube al top aunque el backend ya lo ordene correctamente por updated_at DESC. (2) Acciones del Dashboard como approve/reject (Dashboard.jsx:135-149) y el save de Brand no dan feedback al usuario — refetch silencioso y card inline que se pierde. Esta feature añade: (a) sistema global de toasts (`<Toaster>` montado en Shell.jsx + hook useToast con success/error/info); (b) mecanismo para que el editor avise al Dashboard cuándo cerró tras mutaciones significativas → Dashboard hace refetch() automático y el reel modificado aparece arriba al instante. Alcance acotado a /reels (Dashboard + editor) tras decisión del usuario; Brand/Music/Templates quedan fuera.",
+      "module": "src/app/Shell.jsx, src/lib/hooks/useToast.js (nuevo), src/shared/Toaster.jsx (nuevo), src/features/reels/Dashboard.jsx, src/features/reels/editor/ReelEditor.jsx",
+      "schema": "No (frontend)",
+      "scope": {
+        "back": [],
+        "front": [
+          "Crear src/lib/hooks/useToast.js: implementa un módulo singleton con cola de toasts y hook React useToast() que expone {success(msg, opts), error(msg, opts), info(msg, opts), dismiss(id)}. Usa Context+Provider (`ToastProvider`) montado en Shell.jsx encima de TenantProvider para que cualquier feature pueda llamarlo. Cada toast auto-dismiss tras 4s (success/info) o 6s (error). Opts: { duration?: ms, id?: string para dedupe }. Sin librería externa.",
+          "Crear src/shared/Toaster.jsx: componente que renderiza la cola en una posición fija (top-right o bottom-center, decisión del implementer alineada con el design system actual — mira otros componentes en src/shared/). Cada toast es accesible (role='alert', aria-live='polite' para info/success, 'assertive' para error).",
+          "Montar <ToastProvider><Toaster/>...</ToastProvider> en Shell.jsx envolviendo el resto de la app.",
+          "src/features/reels/Dashboard.jsx: en handleApprove (línea ~135) y handleReject (línea ~143), envolver el await en try/catch y disparar useToast().success('Reel approved') / .error(err.message). Mantener el refetch() existente. Disable temporal del botón clicked mientras está in-flight (usar useMutation loading state).",
+          "src/features/reels/editor/ReelEditor.jsx: añadir tracking de 'hasMutated' (useState false). Cada panel hijo (Photos, Music, Subtitles, Slides, Descriptions) que ya dispara mutación con éxito debe propagar via onMutate prop → setHasMutated(true). Cuando el editor se cierra (handler onClose o navegación back a /reels), si hasMutated y existe el callback onAfterEditorClose desde el parent Dashboard, llamarlo.",
+          "src/features/reels/ReelsRoute (o el componente que monta Dashboard + Outlet en Shell.jsx): pasar al editor un callback que llame al refetch() del useReels() del Dashboard. Patrón: el Dashboard expone su refetch via un Context simple `DashboardRefetchContext` que el editor consume con useContext.",
+          "Disparar toast en cada mutación del editor (photos/music/subs/slides/descriptions) además del feedback inline existente — el feedback inline puede quedar como confirmación contextual (ej: 'Re-rendering with new photo order…'); el toast da confirmación global (ej: 'Photo order saved').",
+          "Test E2E Playwright: tests/reels_dashboard_live_sync.spec.js (archivo nuevo) — abre Dashboard, abre un reel en posición ≥2, dispara una mutación (override de música o similar), cierra el editor, verifica que el reel está ahora en posición 1 sin reload. Mock backend en tests/support/mock-backend.js debe soportar el flow.",
+          "Test E2E feedback: añadir asserts en spec de Dashboard que verifican que tras clic en Approve aparece un toast con texto esperado.",
+          "Sin cambios en lib/api/client.js ni en backend."
+        ],
+        "external": []
+      },
+      "acceptance": [
+        "Existe `<Toaster>` global montado en Shell.jsx y un hook useToast() reutilizable.",
+        "Approve/Reject desde Dashboard dispara toast de éxito o error.",
+        "Mutación dentro del editor (photos/music/subs/slides override) dispara toast de éxito o error además del feedback inline existente.",
+        "Cerrar el editor tras al menos una mutación dispara refetch() del Dashboard automáticamente; el reel modificado aparece en la primera posición (orden updated_at DESC ya garantizado por el backend).",
+        "Cerrar el editor sin haber mutado nada NO dispara refetch innecesario.",
+        "Tests E2E nuevos (live-sync + toast) verdes; suite existente sin regresión (con la conocida flaky de social_templates tablet documentada como pre-existing).",
+        "npm run build + npm run lint verdes.",
+        "Init harness (bash ./init.sh) exit 0."
+      ],
+      "verification": [
+        "bash ./init.sh",
+        "npm run test:e2e -- reels_dashboard_live_sync",
+        "Manual contra :8001: abrir /reels, identificar un reel en posición 5+, cambiar su música, cerrar editor, verificar que sube a la primera fila sin recargar y aparece toast de éxito.",
+        "Manual: aprobar un reel desde Dashboard, verificar toast de éxito y que se va de la pestaña 'Needs approval'."
+      ],
+      "status": "done",
+      "leader_notes": "Feature cross-repo paired con backend #39 (test_reels_list_ordering_guard). Reglas del repo: NO añadir TypeScript, React Query, Tailwind, MSW, styled-components, @emotion. Vanilla React 18 + Vite + Playwright. El toast debe usar las primitives ya existentes en src/shared/ y respetar el design system (mirar BrandConfig.jsx → card .info/.success/.danger como referencia visual). El cambio NO debe romper los E2E existentes (321 passing baseline + 1 flaky tablet de social_templates que es pre-existing y no se ataca aquí)."
+    },
+    {
+      "id": 40,
+      "name": "manual_reel_regenerate_button",
+      "title": "/reels editor: botón 'Render again' que dispara re-render manual sin tocar workflow",
+      "description": "Añade un botón visible en el ReelEditor (cabecera o panel separado) que dispara POST /regenerate (back feature 40). Visible solo cuando render_status='completed' AND publish_status!='published'. Click → confirm modal → POST sin body → badge Re-rendering inmediato + poll de render_status. 409 codes específicos surfaced como toast.",
+      "feature_dir": "src/features/reels/editor/, src/features/reels/, tests/",
+      "depends_on": "4Reels-Backend feature 40 desplegada en :8001.",
+      "acceptance": [
+        "reelsApi.regenerateReel(agencyId,siteId,sourcePropertyId) POST sin body al endpoint feature 40.",
+        "Botón 'Render again' visible en cabecera del ReelEditor cuando render_status=='completed' y publish_status!='published'.",
+        "Click → confirm modal 'This will re-render the reel using current settings. Continue?'.",
+        "Tras confirm: POST disparado, badge 'Re-rendering…' inmediato (reusa RerenderBadge de lockedReelHelpers), poll de render_status (reusa primitive).",
+        "409 REGENERATE_PUBLISHED_FORBIDDEN → toast 'Cannot re-render a published reel'.",
+        "409 REGENERATE_ALREADY_IN_FLIGHT → toast 'A render is already in progress for this reel'.",
+        "Botón hidden o disabled (con tooltip explicativo) cuando publish_status=='published'.",
+        "Tests Playwright: happy path; 409 published path; 409 in_flight path.",
+        "npm run lint, build, test:smoke verdes."
+      ],
+      "verification": [
+        "./init.sh",
+        "npm run test:smoke",
+        "npm run test:e2e tests/manual_reel_regenerate.spec.js",
+        "Manual contra :8001: abrir editor de un reel completed, click 'Render again', confirmar, ver badge, esperar ~2min y verificar nuevo render."
       ],
       "status": "done"
     }

@@ -497,3 +497,50 @@
   .source-body { padding: 0 var(--space-6) var(--space-6); }
   .source-test { flex-wrap: wrap; }
 }
+
+/* ── Default descriptions panel (agency drawer subtab) ───────────────── */
+.default-descriptions-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.default-descriptions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+
+.default-description-field .label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.default-description-textarea {
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.default-descriptions-help {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--bg-soft);
+  border-radius: var(--r-sm);
+}
+
+.default-description-var {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+  background: var(--accent-soft-2);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+

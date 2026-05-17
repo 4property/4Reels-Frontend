@@ -3,19 +3,23 @@
  *  helper.
  */
 /** Default platform list persisted to /defaults.platforms (back jsonb owner). */
-export const DEFAULT_PLATFORMS = ['instagram', 'tiktok', 'facebook', 'gbp'];
+export const DEFAULT_PLATFORMS = ['instagram', 'tiktok', 'facebook', 'gbp', 'pinterest'];
 
-/** Namespaced keys used inside defaults.settings to host the Automation
- *  toggles that the back's /automation endpoint refuses (extra='forbid').
- *  See feature 6 for the rationale. */
+/** Namespaced keys persisted under defaults.settings. Hold / quiet hours
+ *  / skip weekends moved to PUT /automation as native fields in front
+ *  feature 16 (mirror of back feature 13); the remaining captions /
+ *  regen / review-emails toggles still live here because the back's
+ *  AutomationRulesUpsertPayload uses `extra='forbid'` and rejects them.
+ *
+ *  `quietHoursEnabled`, `skipWeekends`, `reviewWindowEnabled` and
+ *  `reviewWindowHours` are kept on this object so older defaults blobs
+ *  still serialize cleanly; the Automation page no longer reads or
+ *  writes them.
+ */
 export const AUTOMATION_SETTINGS_KEYS = {
-  quietHoursEnabled: 'automation.quietHoursEnabled',
-  skipWeekends: 'automation.skipWeekends',
   autoCaptions: 'automation.autoCaptions',
   regenOnUpdate: 'automation.regenOnUpdate',
   reviewEmails: 'automation.reviewEmails',
-  reviewWindowEnabled: 'automation.reviewWindowEnabled',
-  reviewWindowHours: 'automation.reviewWindowHours',
 };
 
 export const INITIAL_DEFAULTS = {
@@ -23,13 +27,9 @@ export const INITIAL_DEFAULTS = {
   platforms: DEFAULT_PLATFORMS,
 
   // Automation-namespaced toggles persisted under defaults.settings
-  [AUTOMATION_SETTINGS_KEYS.quietHoursEnabled]: true,
-  [AUTOMATION_SETTINGS_KEYS.skipWeekends]: false,
   [AUTOMATION_SETTINGS_KEYS.autoCaptions]: true,
   [AUTOMATION_SETTINGS_KEYS.regenOnUpdate]: false,
-  [AUTOMATION_SETTINGS_KEYS.reviewEmails]: '',
-  [AUTOMATION_SETTINGS_KEYS.reviewWindowEnabled]: true,
-  [AUTOMATION_SETTINGS_KEYS.reviewWindowHours]: 1,
+  [AUTOMATION_SETTINGS_KEYS.reviewEmails]: [],
 
   // Format & locale
   currency: 'EUR',
@@ -54,8 +54,6 @@ export const INITIAL_DEFAULTS = {
   subPosition: 'bottom',
   subAlign: 'center',
   subUppercase: false,
-  subHighlightWord: true,
-  subHighlightColor: '#2b57f6',
   subMaxChars: 36,
 
   // Video & timing

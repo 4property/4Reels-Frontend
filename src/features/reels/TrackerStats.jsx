@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Icon } from '../../shared/Icon.jsx';
 import { SocialDot } from '../../shared/SocialDot.jsx';
 import { useSocial } from '../../app/providers/TenantProvider.jsx';
 import { ctrColor, fmtNum } from '../../lib/utils/format.js';
@@ -14,12 +13,21 @@ export function TrackerStats({ tracker }) {
   const [range, setRange] = useState('7');
   const topNet = useSocial(tracker?.topNet);
 
-  if (!tracker) {
-    return (
-      <div className="tracker-empty">
-        <Icon name="link" size={11} /> No tracker data yet
-      </div>
-    );
+  // Render nothing when there is no tracker data. We treat as "no data":
+  //   - null / undefined
+  //   - empty object (no keys)
+  //   - all metrics missing AND no series points
+  const hasData =
+    tracker &&
+    typeof tracker === 'object' &&
+    (tracker.views != null ||
+      tracker.clicks != null ||
+      tracker.ctr != null ||
+      (Array.isArray(tracker.clicks7d) && tracker.clicks7d.length > 0) ||
+      (Array.isArray(tracker.clicks30d) && tracker.clicks30d.length > 0));
+
+  if (!hasData) {
+    return null;
   }
 
   const series = range === '7' ? (tracker.clicks7d || []) : (tracker.clicks30d || []);

@@ -8,7 +8,7 @@ import {
 } from './support/mock-backend.js';
 
 /**
- * Critical user flows. Lightweight â€” heavy unit-style assertions belong in
+ * Critical user flows. Lightweight — heavy unit-style assertions belong in
  * Vitest, not in an E2E pre-deploy gate. Each test stubs the backend
  * surface it needs through `installMockBackend`.
  */
@@ -59,6 +59,45 @@ test.describe('agency session', () => {
     await expect(page.getByRole('heading', { name: /Reels/ })).toBeVisible();
   });
 
+  test('renders reel cards with the property cover image, not the mock video', async ({ page }) => {
+    await seedAgencyLocalStorage(page);
+    await installMockBackend(page, {
+      agencies: [SAMPLE_AGENCY],
+      ghlSession: agencyConnectedSession(SAMPLE_AGENCY_ID),
+      reels: [
+        {
+          site_id: 'ckp.ie',
+          source_property_id: 42,
+          slug: 'cranford-court',
+          title: 'Cranford Court',
+          featured_image_url: '/assets/property/primary.jpg',
+          property_area_label: 'Stillorgan',
+          property_county_label: 'Dublin',
+          price: '€385,000',
+          workflow_state: 'ready',
+          publish_status: 'pending',
+          render_status: 'ready',
+          pipeline_created_at: '2026-05-12T09:00:00Z',
+        },
+      ],
+    });
+    let mockVideoRequests = 0;
+    await page.route(/\/assets\/property\/reel\.mp4$/, async (route) => {
+      mockVideoRequests += 1;
+      await route.abort();
+    });
+
+    await page.goto('/reels');
+
+    const cover = page.locator('.reel-card .cover-media').first();
+    await expect(page.getByText('Cranford Court')).toBeVisible();
+    await expect(cover).toHaveAttribute('src', /\/assets\/property\/primary\.jpg$/);
+    await cover.hover();
+    await page.waitForTimeout(100);
+    await expect(page.locator('.reel-card video.cover-media')).toHaveCount(0);
+    expect(mockVideoRequests).toBe(0);
+  });
+
   test('shows the agency-config tabs but not the Admin tab', async ({ page }) => {
     await seedAgencyLocalStorage(page);
     await installMockBackend(page, {
@@ -68,8 +107,8 @@ test.describe('agency session', () => {
     await page.goto('/reels');
 
     const tabs = page.locator('.tabs .tab');
-    // 6 product tabs (Reels, Music, Social, Brand, Defaults, Automation).
-    await expect(tabs).toHaveCount(6);
+    // 7 product tabs (Reels, Music, Social, Brand, Defaults, Templates, Automation).
+    await expect(tabs).toHaveCount(7);
     await expect(tabs.filter({ hasText: 'Admin' })).toHaveCount(0);
   });
 });

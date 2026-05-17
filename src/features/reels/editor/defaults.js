@@ -17,15 +17,21 @@ export const CRANFORD_PHOTOS = [
   { kind: 'cranford-bathroom', label: 'BATHROOM · ALT', aiScore: 58 },
 ];
 
+/**
+ * Feature 36: subtitles are stored as numeric seconds (`inSeconds` /
+ * `outSeconds`) so the editor can drive the PATCH body verbatim. The legacy
+ * `start: '0:00'` / `end: '0:04'` string shape was display-only; mapping it
+ * 1:1 to floats keeps the backend contract front-and-centre.
+ */
 export const CRANFORD_SUBTITLES = [
-  { id: 's1', start: '0:00', end: '0:04', text: 'Welcome to Cranford Court' },
-  { id: 's2', start: '0:04', end: '0:09', text: 'A private development in Stillorgan, Dublin 4' },
-  { id: 's3', start: '0:09', end: '0:14', text: 'Beautiful communal gardens and mature trees' },
-  { id: 's4', start: '0:14', end: '0:19', text: 'Bright living room with original fireplace' },
-  { id: 's5', start: '0:19', end: '0:24', text: 'Fitted kitchen with integrated appliances' },
-  { id: 's6', start: '0:24', end: '0:29', text: 'Double bedroom with built-in storage' },
-  { id: 's7', start: '0:29', end: '0:33', text: 'Fully tiled bathroom with shower' },
-  { id: 's8', start: '0:33', end: '0:36', text: 'Book a viewing with CKP Estate Agents' },
+  { id: 's1', inSeconds: 0, outSeconds: 4, text: 'Welcome to Cranford Court' },
+  { id: 's2', inSeconds: 4, outSeconds: 9, text: 'A private development in Stillorgan, Dublin 4' },
+  { id: 's3', inSeconds: 9, outSeconds: 14, text: 'Beautiful communal gardens and mature trees' },
+  { id: 's4', inSeconds: 14, outSeconds: 19, text: 'Bright living room with original fireplace' },
+  { id: 's5', inSeconds: 19, outSeconds: 24, text: 'Fitted kitchen with integrated appliances' },
+  { id: 's6', inSeconds: 24, outSeconds: 29, text: 'Double bedroom with built-in storage' },
+  { id: 's7', inSeconds: 29, outSeconds: 33, text: 'Fully tiled bathroom with shower' },
+  { id: 's8', inSeconds: 33, outSeconds: 36, text: 'Book a viewing with CKP Estate Agents' },
 ];
 
 export const DEFAULT_DESCRIPTION =
@@ -57,12 +63,167 @@ export const DEFAULT_TAKE = {
   ],
 };
 
-/** Max-characters-per-description per social network. */
-export const NETWORK_LIMITS = {
-  instagram: 2200,
-  tiktok: 2200,
-  youtube: 5000,
-  facebook: 63206,
-  linkedin: 3000,
-  gmb: 1500,
+/**
+ * Per-platform content policy — single source of truth for what each social
+ * network allows in its description, used both by the global template editor
+ * (`/social`) and the per-reel override panel (`ReelEditor > Descriptions`).
+ *
+ * Field meanings:
+ *   - `descLimit`        — max characters in the description body.
+ *   - `titleLimit`       — max chars for the title field; 0 means the network
+ *                          has no separate title (caption is one block).
+ *   - `supportsLinks`    — true if URLs in the description render as clickable
+ *                          links on the platform. Instagram and TikTok do NOT
+ *                          auto-link URLs in captions.
+ *   - `supportsHashtags` — true if hashtags surface meaningful reach on the
+ *                          platform. GBP/GMB posts ignore hashtags.
+ *   - `linkWarning`      — copy shown to the user when the description contains
+ *                          a URL on a `supportsLinks: false` network. Null when
+ *                          links are fine.
+ *   - `hashtagsNote`     — short copy shown next to the hashtags editor (purely
+ *                          informational; the back-of-truth limit lives in
+ *                          `MAX_HASHTAGS_PER_PLATFORM` in social/constants.js).
+ *   - `notes`            — one-liner shown as an info banner above the editor
+ *                          to set user expectations for the platform.
+ *
+ * Sources: official platform docs (last verified 2026-05). When a platform
+ * changes policy, update this map first; everything else derives.
+ */
+export const PLATFORM_POLICY = {
+  instagram: {
+    descLimit: 2200,
+    titleLimit: 0,
+    supportsLinks: false,
+    supportsHashtags: true,
+    linkWarning:
+      'Instagram does not turn URLs into clickable links in captions. Point viewers to "link in bio" or include the URL as plain text.',
+    hashtagsNote: 'Hashtags work; up to 30 per post recommended.',
+    notes: 'Single caption block, no title. URLs are not clickable.',
+  },
+  tiktok: {
+    descLimit: 2200,
+    titleLimit: 0,
+    supportsLinks: false,
+    supportsHashtags: true,
+    linkWarning:
+      'TikTok captions do not auto-link URLs (only Business accounts can add a bio link). Mention "link in bio" instead.',
+    hashtagsNote: 'Hashtags count toward the description character limit.',
+    notes: 'Caption with hashtags. URLs are not clickable in the feed.',
+  },
+  youtube: {
+    descLimit: 5000,
+    titleLimit: 100,
+    supportsLinks: true,
+    supportsHashtags: true,
+    linkWarning: null,
+    hashtagsNote:
+      'First 3 hashtags appear above the title; up to 15 recommended.',
+    notes:
+      'Title (100 chars) + description (5000 chars). URLs are clickable. Hashtags help discovery.',
+  },
+  facebook: {
+    descLimit: 63206,
+    titleLimit: 0,
+    supportsLinks: true,
+    supportsHashtags: true,
+    linkWarning: null,
+    hashtagsNote: 'Hashtags supported but offer limited reach on Facebook.',
+    notes:
+      'Single post body with link preview. ~500 chars recommended despite the high limit.',
+  },
+  linkedin: {
+    descLimit: 3000,
+    titleLimit: 0,
+    supportsLinks: true,
+    supportsHashtags: true,
+    linkWarning: null,
+    hashtagsNote: '3–5 hashtags is the LinkedIn sweet spot.',
+    notes: 'Single post body. URLs render with a link preview card.',
+  },
+  gbp: {
+    descLimit: 1500,
+    titleLimit: 58,
+    supportsLinks: true,
+    supportsHashtags: false,
+    linkWarning: null,
+    hashtagsNote: 'Google Business Profile posts ignore hashtags — skip them.',
+    notes:
+      'Update title (58 chars) + body (1500 chars). URLs render as a CTA button.',
+  },
+  gmb: {
+    descLimit: 1500,
+    titleLimit: 58,
+    supportsLinks: true,
+    supportsHashtags: false,
+    linkWarning: null,
+    hashtagsNote: 'Google Business Profile posts ignore hashtags — skip them.',
+    notes:
+      'Update title (58 chars) + body (1500 chars). URLs render as a CTA button.',
+  },
+  pinterest: {
+    descLimit: 500,
+    titleLimit: 100,
+    supportsLinks: true,
+    supportsHashtags: true,
+    linkWarning: null,
+    hashtagsNote: 'Up to 20 hashtags help Pin discovery.',
+    notes: 'Pin title (100 chars) + description (500 chars). URLs are clickable.',
+  },
 };
+
+/** Defaults for any platform not yet in PLATFORM_POLICY. */
+export const DEFAULT_PLATFORM_POLICY = Object.freeze({
+  descLimit: 2200,
+  titleLimit: 0,
+  supportsLinks: true,
+  supportsHashtags: true,
+  linkWarning: null,
+  hashtagsNote: '',
+  notes: '',
+});
+
+export function getPlatformPolicy(platformId) {
+  return PLATFORM_POLICY[platformId] || DEFAULT_PLATFORM_POLICY;
+}
+
+/**
+ * Derived legacy alias: `NETWORK_LIMITS[platform]` returns the description
+ * character limit. Kept so existing imports (`SocialConfig.jsx`,
+ * `DescriptionsPanel.jsx`) keep working without churn.
+ */
+export const NETWORK_LIMITS = Object.fromEntries(
+  Object.entries(PLATFORM_POLICY).map(([id, p]) => [id, p.descLimit]),
+);
+
+/**
+ * Variables that, when substituted at publish time, produce a URL. Used by
+ * `findLinksInText` so a template like "Book at {{property_url}}" is flagged
+ * on Instagram/TikTok even before substitution.
+ */
+const LINK_VARIABLES = ['property_url', 'booking_link'];
+
+/**
+ * Detect anything that will render as a URL after template substitution:
+ *   - Inline absolute URLs (`http://...`, `https://...`).
+ *   - `www.example.com/...` patterns that platforms usually auto-link.
+ *   - Template variables that resolve to a URL (`{{property_url}}`,
+ *     `{{booking_link}}`).
+ *
+ * Returns an array of `{ kind, match }` so callers can both render a warning
+ * and (optionally) highlight the offending fragments. Empty array = no links.
+ */
+export function findLinksInText(text) {
+  const out = [];
+  if (!text || typeof text !== 'string') return out;
+  const urlRe = /(https?:\/\/[^\s]+|\bwww\.[^\s]+)/gi;
+  let m;
+  while ((m = urlRe.exec(text)) !== null) {
+    out.push({ kind: 'url', match: m[0] });
+  }
+  for (const key of LINK_VARIABLES) {
+    if (text.includes(`{{${key}}}`)) {
+      out.push({ kind: 'variable', match: `{{${key}}}` });
+    }
+  }
+  return out;
+}

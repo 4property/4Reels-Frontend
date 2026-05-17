@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
 import { Spinner } from '../../shared/Spinner.jsx';
 import { adminApi } from './api.js';
+import { DefaultDescriptionsPanel } from './DefaultDescriptionsPanel.jsx';
 
 const TABS = [
   { id: 'sources', label: 'WordPress sources', icon: 'link' },
   { id: 'ghl', label: 'GHL connection', icon: 'zap' },
   { id: 'reel', label: 'Reel settings', icon: 'film' },
+  { id: 'descriptions', label: 'Descriptions', icon: 'edit' },
   { id: 'agency', label: 'Agency', icon: 'settings' },
 ];
 
@@ -111,6 +113,9 @@ export function AgencyConfigDrawer({ agency, onClose, onChanged }) {
                   profile={reelProfile}
                   reload={reload}
                 />
+              )}
+              {tab === 'descriptions' && (
+                <DefaultDescriptionsPanel agencyId={agency.agency_id} />
               )}
               {tab === 'agency' && (
                 <AgencyPanel
@@ -557,7 +562,15 @@ function GhlPanel({ agencyId, connection, reload }) {
 }
 
 // ─── Reel settings tab ────────────────────────────────────────────────
-const ALL_PLATFORMS = ['tiktok', 'instagram', 'linkedin', 'youtube', 'facebook', 'gbp'];
+const ALL_PLATFORMS = [
+  'tiktok',
+  'instagram',
+  'linkedin',
+  'youtube',
+  'facebook',
+  'gbp',
+  'pinterest',
+];
 const LOGO_POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 
 function ReelPanel({ agencyId, profile, reload }) {
@@ -794,7 +807,7 @@ function ReelPanel({ agencyId, profile, reload }) {
               />
               <span className="t-medium">Require approval before publishing</span>
               <span className="t-sm t-muted" style={{ marginLeft: 'auto' }}>
-                Reels stop at <code>awaiting_review</code> until manually approved.
+                Reels stop at <code>pending_review</code> until manually approved.
               </span>
             </label>
 
@@ -834,7 +847,7 @@ function buildReelFormState(profile) {
     name: profile?.name || 'Default',
     platforms: Array.isArray(profile?.platforms) && profile.platforms.length > 0
       ? profile.platforms
-      : ['tiktok', 'instagram', 'linkedin', 'youtube', 'facebook', 'gbp'],
+      : ['tiktok', 'instagram', 'linkedin', 'youtube', 'facebook', 'gbp', 'pinterest'],
     durationSeconds: profile?.duration_seconds ?? 30,
     musicId: profile?.music_id || '',
     introEnabled: profile?.intro_enabled ?? true,

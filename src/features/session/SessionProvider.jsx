@@ -7,7 +7,7 @@
  * and exposes it via `useCurrentAgency()` / `useCurrentAgencyId()`.
  *
  * Rendered near the root so sub-trees don't re-fetch. While loading, a very
- * small placeholder is shown â€” permissions must be resolved before any tab
+ * small placeholder is shown — permissions must be resolved before any tab
  * renders, otherwise `<RequirePermission>` would flash a redirect.
  */
 import { createContext, useContext } from 'react';
@@ -72,19 +72,19 @@ function GhlMvpSessionProvider({ children }) {
         locationId: savedContext.locationId,
         userId: savedContext.userId,
       });
-      // Adjuntar el bearer ANTES de pasar a 'ready' para evitar la race
-      // con el primer GET /v1/admin/agencies/{id} disparado por
-      // ActiveAgencyProvider en el mismo render.
+      // Attach the bearer BEFORE switching to 'ready' to avoid the race
+      // with the first GET /v1/admin/agencies/{id} fired by
+      // ActiveAgencyProvider in the same render.
       if (session?.agency_token) {
         setAuthToken(session.agency_token);
       }
       setUser(buildMvpUser(savedContext, session));
       setStatus('ready');
     } catch (err) {
-      // 503 AGENCY_AUTH_NOT_CONFIGURED → backend admite la sesión pero no
-      // tiene ADMIN_AGENCY_TOKEN_SECRET. Volvemos a la pantalla de gate
-      // con el código de error explícito para que la UI lo trate como
-      // "configuración rota" en lugar de un error genérico.
+      // 503 AGENCY_AUTH_NOT_CONFIGURED → backend accepts the session but is
+      // missing ADMIN_AGENCY_TOKEN_SECRET. We go back to the gate screen
+      // with the explicit error code so the UI treats it as
+      // "broken configuration" instead of a generic error.
       const code = err?.body?.code || err?.body?.error;
       if (err?.status === 503 && code === 'AGENCY_AUTH_NOT_CONFIGURED') {
         clearAuthToken();
@@ -97,9 +97,9 @@ function GhlMvpSessionProvider({ children }) {
     }
   }, []);
 
-  // 401 en cualquier ruta /v1/admin/* dispara el listener; el provider
-  // tira el token y vuelve al gate. Sin retry ni refresh — feature 5
-  // del back no define refresh todavía.
+  // A 401 on any /v1/admin/* route fires the listener; the provider
+  // drops the token and goes back to the gate. No retry, no refresh —
+  // feature 5 on the back doesn't define refresh yet.
   useEffect(() => {
     return subscribeUnauthorized(() => {
       clearAuthToken();
@@ -154,11 +154,11 @@ function GhlMvpSessionProvider({ children }) {
         error={error}
         onConnect={connect}
         onAdmin={(localBearer) => {
-          // En modo super-admin local, si el operador ha pegado un bearer
-          // lo guardamos antes de marcar la sesión como ready para que la
-          // primera llamada admin lleve Authorization. Si no lo ha pegado,
-          // la sesión arranca sin token y la primera llamada admin va a
-          // fallar con 401, lo que vuelve a esta pantalla.
+          // In local super-admin mode, if the operator pasted a bearer
+          // we save it before marking the session ready so the first
+          // admin call carries Authorization. If they didn't paste one,
+          // the session starts without a token and the first admin call
+          // will fail with 401, bringing us back to this screen.
           if (localBearer) {
             setAuthToken(localBearer);
           }
@@ -232,6 +232,7 @@ function GhlMvpConnectScreen({ context, error, onConnect, onAdmin, onReset }) {
   const [submitting, setSubmitting] = useState(false);
   const [localBearer, setLocalBearer] = useState('');
   const encryptedOnly = Boolean(context?.encryptedContextOnly);
+  const decryptNetworkError = encryptedOnly && context?.decryptErrorKind === 'network';
   const authNotConfigured = error?.code === 'AGENCY_AUTH_NOT_CONFIGURED';
 
   const submit = async (event) => {
@@ -272,7 +273,7 @@ function GhlMvpConnectScreen({ context, error, onConnect, onAdmin, onReset }) {
           </div>
         )}
 
-        {encryptedOnly && (
+        {encryptedOnly && !decryptNetworkError && (
           <div className="ghl-mvp-note">
             <Icon name="info" size={14} />
             HighLevel returned encrypted user context. Configure the backend
@@ -280,14 +281,23 @@ function GhlMvpConnectScreen({ context, error, onConnect, onAdmin, onReset }) {
           </div>
         )}
 
-        {context?.decryptError && (
+        {decryptNetworkError && (
+          <div className="ghl-mvp-note danger">
+            <Icon name="alert" size={14} />
+            HighLevel returned encrypted user context, but this browser could not
+            reach the backend decrypt endpoint. Check the backend URL and CORS
+            for this origin.
+          </div>
+        )}
+
+        {context?.decryptError && !decryptNetworkError && (
           <div className="ghl-mvp-note danger">
             <Icon name="alert" size={14} />
             {context.decryptError}
           </div>
         )}
 
-        {error && !authNotConfigured && (
+        {error && !authNotConfigured && !decryptNetworkError && (
           <div className="ghl-mvp-note danger">
             <Icon name="alert" size={14} />
             {error.message || 'Could not create the MVP session.'}

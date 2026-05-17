@@ -11,6 +11,8 @@ export function AutoPublishDetails({
   reviewWindow, setReviewWindow,
   reviewWindowHours, setReviewWindowHours,
   quietHours, setQuietHours,
+  quietHoursStart, setQuietHoursStart,
+  quietHoursEnd, setQuietHoursEnd,
   skipWeekends, setSkipWeekends,
   autoIncludeNetworks, toggleNet,
 }) {
@@ -42,12 +44,22 @@ export function AutoPublishDetails({
         </div>
 
         <hr className="sep" style={{ margin: 0 }} />
-        <Toggle
-          on={quietHours}
-          onChange={setQuietHours}
-          label="Respect quiet hours (22:00 → 07:00)"
-          sub="Reels that finish rendering at night will be queued for 07:00 the next morning."
-        />
+        <div>
+          <Toggle
+            on={quietHours}
+            onChange={setQuietHours}
+            label="Respect quiet hours"
+            sub="Reels that finish rendering during quiet hours will be queued for the next allowed slot."
+          />
+          {quietHours && (
+            <QuietHoursPicker
+              start={quietHoursStart}
+              end={quietHoursEnd}
+              setStart={setQuietHoursStart}
+              setEnd={setQuietHoursEnd}
+            />
+          )}
+        </div>
 
         <hr className="sep" style={{ margin: 0 }} />
         <Toggle
@@ -114,6 +126,43 @@ function HoldPicker({ hours, setHours }) {
           />
           <span className="input-group-icon" style={{ fontSize: 12 }}>hours</span>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function QuietHoursPicker({ start, end, setStart, setEnd }) {
+  return (
+    <div className="quiet-hours-picker" style={{ marginTop: 12 }}>
+      <div className="row gap-6 row-wrap">
+        <div className="field" style={{ minWidth: 140 }}>
+          <label className="label" htmlFor="quiet-hours-start" style={{ marginBottom: 6 }}>
+            Quiet hours start
+          </label>
+          <input
+            id="quiet-hours-start"
+            className="input"
+            type="time"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
+        </div>
+        <div className="field" style={{ minWidth: 140 }}>
+          <label className="label" htmlFor="quiet-hours-end" style={{ marginBottom: 6 }}>
+            Quiet hours end
+          </label>
+          <input
+            id="quiet-hours-end"
+            className="input"
+            type="time"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="hint" style={{ marginTop: 6 }}>
+        Local time of the agency. Reels finishing inside this window are queued until the
+        next allowed slot.
       </div>
     </div>
   );

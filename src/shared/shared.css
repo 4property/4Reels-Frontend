@@ -73,26 +73,6 @@
   cursor: pointer;
 }
 
-/* ── Empty box ─────────────────────────────────────────────────────── */
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-pill);
-  background: var(--bg-sunken);
-  color: var(--text-muted);
-  margin: 0 auto var(--space-6);
-}
-.empty-title {
-  color: var(--text);
-  font-weight: var(--fw-medium);
-  margin-bottom: var(--space-2);
-}
-.empty-sub {
-  font-size: var(--fs-12);
-}
-
 /* ── Social dot ────────────────────────────────────────────────────── */
 .social-dot {
   border-radius: 50%;
@@ -133,4 +113,89 @@
   font-size: var(--fs-12);
   color: var(--text-muted);
   margin-top: var(--space-1);
+}
+
+/* ── Toaster (feature 39) ──────────────────────────────────────────── */
+.toaster {
+  position: fixed;
+  right: var(--space-12);
+  bottom: var(--space-12);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  pointer-events: none; /* let underlying UI stay interactive between toasts */
+  max-width: min(420px, calc(100vw - 24px));
+}
+
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 20px 1fr 24px;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 41, 0.12));
+  font-size: var(--fs-13);
+  color: var(--text);
+  animation: toast-in 0.18s ease-out;
+}
+
+.toast-success { border-left-color: var(--success); }
+.toast-error   { border-left-color: var(--danger); }
+.toast-info    { border-left-color: var(--info); }
+
+.toast-success .toast-icon { color: var(--success); }
+.toast-error   .toast-icon { color: var(--danger); }
+.toast-info    .toast-icon { color: var(--info); }
+
+.toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-message {
+  line-height: var(--lh-snug);
+  word-break: break-word;
+}
+
+.toast-close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+.toast-close:hover {
+  background: var(--bg-sunken);
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* On narrow viewports, stretch the toast container to most of the width
+ * and centre it at the bottom so the message remains legible without
+ * overlapping the bottom navigation chrome. */
+@media (max-width: 720px) {
+  .toaster {
+    left: var(--space-6);
+    right: var(--space-6);
+    max-width: none;
+  }
 }

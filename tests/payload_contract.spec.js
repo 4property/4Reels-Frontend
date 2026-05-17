@@ -51,12 +51,23 @@ test.describe('feature 6 — payload contract', () => {
 
     expect(seenBodies.length, 'brand PUT was emitted').toBeGreaterThan(0);
     const body = seenBodies[0];
-    expect(body).toMatchObject({
-      primary_color: expect.any(String),
-      secondary_color: expect.any(String),
-      logo_position: expect.any(String),
-      font_family: expect.any(String),
-    });
+    // Feature 28 — primary_color / secondary_color / font_family are now
+    // `str | None`: `null` means "fall back to the default at render time".
+    // The contract is that the key is *present* (the front never omits it),
+    // not that the value is a string. logo_position is still always a string.
+    expect(body).toHaveProperty('primary_color');
+    expect(body).toHaveProperty('secondary_color');
+    expect(body).toHaveProperty('font_family');
+    expect(body).toMatchObject({ logo_position: expect.any(String) });
+    expect(
+      body.primary_color === null || typeof body.primary_color === 'string',
+    ).toBe(true);
+    expect(
+      body.secondary_color === null || typeof body.secondary_color === 'string',
+    ).toBe(true);
+    expect(
+      body.font_family === null || typeof body.font_family === 'string',
+    ).toBe(true);
     for (const banned of [
       'font',
       'tagline',
@@ -115,14 +126,19 @@ test.describe('feature 6 — payload contract', () => {
     const automationBody = automationBodies[0];
     expect(automationBody).toMatchObject({
       approval_required: expect.any(Boolean),
+      hold_window_seconds: expect.any(Number),
+      quiet_hours_enabled: expect.any(Boolean),
+      skip_weekends: expect.any(Boolean),
+      publish_days: expect.any(Array),
     });
+    // Front feature 16: the scheduling toggles moved to /automation, so
+    // the banned list shrinks. Captions/regen/review-emails stay banned —
+    // they still live on /defaults.
     for (const banned of [
       'publish_mode',
       'platforms',
       'review_window_enabled',
       'review_window_hours',
-      'quiet_hours_enabled',
-      'skip_weekends',
       'auto_captions',
       'regen_on_update',
       'review_emails',
@@ -140,8 +156,13 @@ test.describe('feature 6 — payload contract', () => {
     expect(defaultsBody.settings).toBeTruthy();
     // Pass keys as arrays so the literal "automation.x" key is matched
     // (Playwright/Jest treats string args as nested path).
-    expect(defaultsBody.settings).toHaveProperty(['automation.quietHoursEnabled']);
     expect(defaultsBody.settings).toHaveProperty(['automation.autoCaptions']);
+    expect(defaultsBody.settings).toHaveProperty(['automation.regenOnUpdate']);
+    // The hold / quiet / skip keys are no longer written via /defaults.
+    expect(defaultsBody.settings).not.toHaveProperty(['automation.quietHoursEnabled']);
+    expect(defaultsBody.settings).not.toHaveProperty(['automation.skipWeekends']);
+    expect(defaultsBody.settings).not.toHaveProperty(['automation.reviewWindowEnabled']);
+    expect(defaultsBody.settings).not.toHaveProperty(['automation.reviewWindowHours']);
 
     expect(automationStatuses, 'no 422 on /automation').not.toContain(422);
     expect(defaultsStatuses, 'no 422 on /defaults').not.toContain(422);

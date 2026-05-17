@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AdminView } from '../features/admin/index.js';
 import { AutomationConfig } from '../features/automation/index.js';
@@ -6,16 +6,19 @@ import { BrandConfig } from '../features/brand/index.js';
 import { ReelDefaultsConfig } from '../features/defaults/index.js';
 import { MusicConfig } from '../features/music/index.js';
 import { NotificationSettings } from '../features/notifications/index.js';
+import { DashboardRefetchContext } from '../features/reels/DashboardRefetchContext.js';
 import { Dashboard, ReelEditorRoute } from '../features/reels/index.js';
 import { RequirePermission, usePermissions } from '../features/session/index.js';
 import { can } from '../features/session/permissions.js';
 import { SocialConfig } from '../features/social/index.js';
+import { TemplatesPage } from '../features/templates/index.js';
+import { Toaster } from '../shared/Toaster.jsx';
 import { PAGES } from './pages.js';
 import { Topbar } from './Topbar.jsx';
 import { TweaksPanel } from './TweaksPanel.jsx';
 import { useEmbeddedEditMode } from './useEmbeddedEditMode.js';
 
-/** App shell â€” topbar + route outlet + global modals. */
+/** App shell — topbar + route outlet + global modals. */
 export function Shell() {
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -80,6 +83,14 @@ export function Shell() {
             }
           />
           <Route
+            path="/templates"
+            element={
+              <RequirePermission module="brand" redirectTo={landingPath}>
+                <TemplatesPage />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="/automation"
             element={
               <RequirePermission module="automation" redirectTo={landingPath}>
@@ -101,6 +112,9 @@ export function Shell() {
 
       {tweaksOpen && <TweaksPanel onClose={() => setTweaksOpen(false)} />}
       {notifOpen && <NotificationSettings onClose={() => setNotifOpen(false)} />}
+
+      {/* Feature 39: global toast queue, mounted once so any route can emit. */}
+      <Toaster />
     </div>
   );
 }
@@ -118,12 +132,30 @@ function pickLandingPath(permissions) {
 /**
  * `/reels` always renders the Dashboard. The <Outlet/> renders the nested
  * `/reels/:id` route on top of it as a full-screen overlay when present.
+ *
+ * Feature 39: we lift the Dashboard's `refetch` callback out via a ref so
+ * the editor (rendered inside the Outlet) can ask the Dashboard to re-pull
+ * the list after a mutation. A `ref` is enough — we never want re-renders
+ * triggered by the refetch identity changing.
  */
 function ReelsRoute() {
+  const refetchRef = useRef(null);
+  const registerRefetch = useCallback((fn) => {
+    refetchRef.current = typeof fn === 'function' ? fn : null;
+  }, []);
+  // Stable wrapper: the editor consumes this from context. It can be safely
+  // invoked even if the Dashboard hasn't registered its refetch yet (no-op).
+  const dashboardRefetch = useCallback(() => {
+    if (typeof refetchRef.current === 'function') {
+      refetchRef.current();
+    }
+  }, []);
   return (
     <>
-      <Dashboard />
-      <Outlet />
+      <Dashboard onRegisterRefetch={registerRefetch} />
+      <DashboardRefetchContext.Provider value={dashboardRefetch}>
+        <Outlet />
+      </DashboardRefetchContext.Provider>
     </>
   );
 }
@@ -134,7 +166,7 @@ function PageContainer({ children }) {
   const { pathname } = useLocation();
   const activeLabel = PAGES.find((p) => pathname.startsWith(p.path))?.label || '';
   return (
-    <div className="page" data-screen-label={`Page Â· ${activeLabel}`}>
+    <div className="page" data-screen-label={`Page · ${activeLabel}`}>
       {children}
     </div>
   );

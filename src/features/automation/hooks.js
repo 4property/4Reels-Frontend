@@ -15,12 +15,19 @@ export function useAutomationRules() {
 }
 
 /**
- * Build the canonical PUT /automation body. The back's
- * AutomationRulesUpsertPayload only accepts:
- *   approval_required, trigger_on_status, publish_window_start?,
- *   publish_window_end?, publish_days?
+ * Build the canonical PUT /automation body. After back feature 13 the
+ * AutomationRulesUpsertPayload accepts:
+ *   approval_required, trigger_on_status,
+ *   hold_window_seconds, quiet_hours_enabled, skip_weekends,
+ *   publish_window_start?, publish_window_end?, publish_days?
  *
- * `publishMode` is a UI-only concept that maps to `approval_required`.
+ * Mapping notes:
+ *   - `publishMode` is UI-only and maps to `approval_required`.
+ *   - The UI captures "quiet hours" as the *silent* range
+ *     (e.g. 22:00 → 07:00). The backend stores the *allowed* range in
+ *     publish_window_start / publish_window_end, so we invert them.
+ *   - `publish_days` reflects skip_weekends so the back can defer
+ *     Saturday/Sunday approvals to Monday at publish_window_start.
  */
 export function buildAutomationBody(state) {
   const body = {
@@ -29,9 +36,22 @@ export function buildAutomationBody(state) {
   if (state.triggerOnStatus !== undefined && state.triggerOnStatus !== null) {
     body.trigger_on_status = state.triggerOnStatus;
   }
-  if (state.publishWindowStart) body.publish_window_start = state.publishWindowStart;
-  if (state.publishWindowEnd) body.publish_window_end = state.publishWindowEnd;
-  if (Array.isArray(state.publishDays)) body.publish_days = state.publishDays;
+
+  body.hold_window_seconds = state.holdWindowEnabled
+    ? Math.max(0, Math.round((Number(state.holdWindowHours) || 0) * 3600))
+    : 0;
+
+  body.quiet_hours_enabled = Boolean(state.quietHoursEnabled);
+  if (state.quietHoursEnabled) {
+    body.publish_window_start = state.quietHoursEnd;
+    body.publish_window_end = state.quietHoursStart;
+  }
+
+  body.skip_weekends = Boolean(state.skipWeekends);
+  body.publish_days = state.skipWeekends
+    ? ['mon', 'tue', 'wed', 'thu', 'fri']
+    : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
   return body;
 }
 

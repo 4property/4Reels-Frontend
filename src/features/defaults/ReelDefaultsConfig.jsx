@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
 import { Spinner } from '../../shared/Spinner.jsx';
 import { INITIAL_DEFAULTS } from './initialState.js';
-import { LivePreview } from './LivePreview.jsx';
 import { AudioTab } from './tabs/AudioTab.jsx';
 import { CaptionsTab } from './tabs/CaptionsTab.jsx';
 import { FormatTab } from './tabs/FormatTab.jsx';
@@ -39,6 +38,10 @@ export function ReelDefaultsConfig() {
         // Mirror top-level columns into the form so the toggle and the
         // duration field match what is actually persisted.
         introEnabled: defaults?.intro_enabled ?? persisted.introEnabled ?? true,
+        // Feature 33 — `outro_enabled` is surfaced top-level (mirror of
+        // `intro_enabled`); fall through to the legacy settings.outroEnabled
+        // value for agencies whose defaults row pre-dates back 33.
+        outroEnabled: defaults?.outro_enabled ?? persisted.outroEnabled ?? true,
         platforms: Array.isArray(defaults?.platforms)
           ? defaults.platforms
           : persisted.platforms || INITIAL_DEFAULTS.platforms,
@@ -47,6 +50,7 @@ export function ReelDefaultsConfig() {
       setState((current) => ({
         ...current,
         introEnabled: defaults.intro_enabled ?? current.introEnabled,
+        outroEnabled: defaults.outro_enabled ?? current.outroEnabled,
         platforms: Array.isArray(defaults.platforms)
           ? defaults.platforms
           : current.platforms,
@@ -127,12 +131,18 @@ export function ReelDefaultsConfig() {
             {tab === 'format' && <FormatTab state={state} set={set} />}
             {tab === 'subtitles' && <SubtitlesTab state={state} set={set} />}
             {tab === 'video' && <VideoTab state={state} set={set} />}
-            {tab === 'intro-outro' && <IntroOutroTab state={state} set={set} />}
+            {tab === 'intro-outro' && (
+              <IntroOutroTab
+                state={state}
+                set={set}
+                defaults={defaults}
+                agencyId={agencyId}
+                refetchDefaults={refetch}
+              />
+            )}
             {tab === 'audio' && <AudioTab state={state} set={set} />}
             {tab === 'captions' && <CaptionsTab state={state} set={set} />}
           </div>
-
-          <LivePreview state={state} />
         </div>
       </div>
     </div>

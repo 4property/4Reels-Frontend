@@ -10,19 +10,16 @@ import { buildAutomationBody } from './hooks.js';
 /**
  * Composed save hook for the Automation page.
  *
- * The visible UI keeps the historical 7 toggles + the platform slider,
- * but the back contract splits the persistence:
- *   - `/automation` only accepts approval_required / trigger_on_status /
- *     publish_window_* / publish_days (extra='forbid').
- *   - `platforms` and the legacy quiet/skip/captions/regen/review toggles
- *     live in `/defaults` (`platforms` as top-level array; the toggles as
- *     namespaced keys inside the jsonb `settings` blob).
+ * After backend feature 13 the scheduling toggles (hold window, quiet
+ * hours, skip weekends) live entirely under `/automation`. Only the
+ * captions / regen-on-update / review-emails toggles still travel via
+ * the jsonb `defaults.settings` blob, because the back's automation
+ * payload still uses `extra='forbid'` and rejects them.
  *
  * On save we:
- *   1. GET the current /defaults to read its `settings` blob (the back
- *      replaces — not merges — `settings`, so we have to round-trip
- *      everything in there to avoid losing keys other tabs wrote).
- *   2. PUT /automation with the canonical body.
+ *   1. GET the current /defaults to preserve every other settings key
+ *      (the back replaces — not merges — `settings`).
+ *   2. PUT /automation with the canonical body (hold / quiet / skip).
  *   3. PUT /defaults with `platforms` + merged `settings`.
  */
 export function useAutomationSave() {
@@ -38,7 +35,6 @@ export function useAutomationSave() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Read the current defaults so we preserve every other settings key.
       let existingSettings = {};
       let existingPlatforms = INITIAL_DEFAULTS.platforms;
       let existingIntroEnabled = true;
@@ -63,22 +59,29 @@ export function useAutomationSave() {
         if (readErr?.status && readErr.status !== 404) throw readErr;
       }
 
+      // Strip the legacy hold/quiet/skip namespaced keys: they now live in
+      // /automation. Anything else any other tab wrote inside settings is
+      // preserved verbatim. The literal key names are kept here (not
+      // re-imported from AUTOMATION_SETTINGS_KEYS) so this migration logic
+      // survives even after the constants are dropped from initialState.
+      const sanitisedSettings = { ...existingSettings };
+      delete sanitisedSettings['automation.quietHoursEnabled'];
+      delete sanitisedSettings['automation.skipWeekends'];
+      delete sanitisedSettings['automation.reviewWindowEnabled'];
+      delete sanitisedSettings['automation.reviewWindowHours'];
+
       const mergedSettings = {
-        ...existingSettings,
-        [AUTOMATION_SETTINGS_KEYS.quietHoursEnabled]: Boolean(
-          automationState.quietHours,
-        ),
-        [AUTOMATION_SETTINGS_KEYS.skipWeekends]: Boolean(automationState.skipWeekends),
+        ...sanitisedSettings,
         [AUTOMATION_SETTINGS_KEYS.autoCaptions]: Boolean(automationState.captions),
         [AUTOMATION_SETTINGS_KEYS.regenOnUpdate]: Boolean(
           automationState.regenOnUpdate,
         ),
-        [AUTOMATION_SETTINGS_KEYS.reviewEmails]: automationState.reviewEmails || '',
-        [AUTOMATION_SETTINGS_KEYS.reviewWindowEnabled]: Boolean(
-          automationState.reviewWindow,
-        ),
-        [AUTOMATION_SETTINGS_KEYS.reviewWindowHours]:
-          Number(automationState.reviewWindowHours) || 0,
+        // Feature 26: list[str] directly. The back accepts both shapes on
+        // ingress (legacy CSV → split server-side); we always send the
+        // canonical array form so a round-trip stabilises on the new shape.
+        [AUTOMATION_SETTINGS_KEYS.reviewEmails]: Array.isArray(automationState.reviewEmails)
+          ? automationState.reviewEmails
+          : [],
       };
 
       const automationBody = buildAutomationBody(automationState);
@@ -89,7 +92,6 @@ export function useAutomationSave() {
         settings: mergedSettings,
       };
 
-      // 2 + 3. Persist both slices.
       await automationApi.saveAutomation(agencyId, automationBody);
       await defaultsApi.saveDefaults(agencyId, defaultsBody);
     } catch (err) {

@@ -12,7 +12,24 @@ import {
   AUTOMATION_SETTINGS_KEYS,
   DEFAULT_PLATFORMS,
 } from '../defaults/initialState.js';
+import { normaliseEmail } from '../../lib/utils/email.js';
 import './automation.css';
+
+/**
+ * Back accepts `defaults.settings.automation.reviewEmails` as either
+ * `string[]` (canonical, feature 26) or as a legacy CSV string. Tolerate
+ * both shapes on hydration; we always serialise back as `string[]`.
+ */
+function parseReviewEmails(raw) {
+  if (Array.isArray(raw)) return raw.map(normaliseEmail).filter(Boolean);
+  if (typeof raw === 'string') {
+    return raw.split(',').map(normaliseEmail).filter(Boolean);
+  }
+  return [];
+}
+
+const DEFAULT_QUIET_HOURS_START = '22:00';
+const DEFAULT_QUIET_HOURS_END = '07:00';
 
 /** Automation page — the core "auto vs review-first" decision for publishing. */
 export function AutomationConfig() {
@@ -22,29 +39,45 @@ export function AutomationConfig() {
   const [save, { loading: saving }] = useAutomationSave();
 
   const [publishMode, setPublishMode] = useState('auto');
-  const [reviewWindow, setReviewWindow] = useState(true);
-  const [reviewWindowHours, setReviewWindowHours] = useState(1);
-  const [quietHours, setQuietHours] = useState(true);
+  const [holdWindowEnabled, setHoldWindowEnabled] = useState(true);
+  const [holdWindowHours, setHoldWindowHours] = useState(1);
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(true);
+  const [quietHoursStart, setQuietHoursStart] = useState(DEFAULT_QUIET_HOURS_START);
+  const [quietHoursEnd, setQuietHoursEnd] = useState(DEFAULT_QUIET_HOURS_END);
   const [skipWeekends, setSkipWeekends] = useState(false);
   const [captions, setCaptions] = useState(true);
   const [regenOnUpdate, setRegenOnUpdate] = useState(false);
-  const [reviewEmails, setReviewEmails] = useState('');
+  const [reviewEmails, setReviewEmails] = useState([]);
   const [autoIncludeNetworks, setAutoIncludeNetworks] = useState(DEFAULT_PLATFORMS);
   const [statusMessage, setStatusMessage] = useState(null);
 
   useEffect(() => {
-    // Hydrate the publish-mode + window from the /automation slice.
-    if (automation) {
-      const approvalRequired =
-        typeof automation.approval_required === 'boolean'
-          ? automation.approval_required
-          : false;
-      setPublishMode(approvalRequired ? 'review' : 'auto');
+    if (!automation) return;
+    // Publish-mode toggle.
+    const approvalRequired =
+      typeof automation.approval_required === 'boolean'
+        ? automation.approval_required
+        : false;
+    setPublishMode(approvalRequired ? 'review' : 'auto');
+
+    // Hold window — hold_window_seconds is the canonical owner.
+    const holdSeconds = Number(automation.hold_window_seconds) || 0;
+    setHoldWindowEnabled(holdSeconds > 0);
+    if (holdSeconds > 0) setHoldWindowHours(holdSeconds / 3600);
+
+    // Quiet hours — invert publish_window_* (allowed) back into the silent range.
+    setQuietHoursEnabled(Boolean(automation.quiet_hours_enabled));
+    if (automation.publish_window_start && automation.publish_window_end) {
+      setQuietHoursStart(automation.publish_window_end);
+      setQuietHoursEnd(automation.publish_window_start);
     }
+
+    // Skip weekends — canonical owner is now /automation.
+    setSkipWeekends(Boolean(automation.skip_weekends));
   }, [automation]);
 
   useEffect(() => {
-    // Hydrate platforms + the namespaced automation toggles from /defaults.
+    // Hydrate platforms + the remaining defaults-owned automation toggles.
     if (!defaults) return;
     const settings = (defaults.settings && typeof defaults.settings === 'object')
       ? defaults.settings
@@ -52,19 +85,11 @@ export function AutomationConfig() {
     if (Array.isArray(defaults.platforms) && defaults.platforms.length > 0) {
       setAutoIncludeNetworks(defaults.platforms);
     }
-    setReviewWindow(
-      settings[AUTOMATION_SETTINGS_KEYS.reviewWindowEnabled] ?? true,
-    );
-    setReviewWindowHours(
-      settings[AUTOMATION_SETTINGS_KEYS.reviewWindowHours] ?? 1,
-    );
-    setQuietHours(settings[AUTOMATION_SETTINGS_KEYS.quietHoursEnabled] ?? true);
-    setSkipWeekends(Boolean(settings[AUTOMATION_SETTINGS_KEYS.skipWeekends]));
     setCaptions(settings[AUTOMATION_SETTINGS_KEYS.autoCaptions] ?? true);
     setRegenOnUpdate(
       Boolean(settings[AUTOMATION_SETTINGS_KEYS.regenOnUpdate]),
     );
-    setReviewEmails(settings[AUTOMATION_SETTINGS_KEYS.reviewEmails] || '');
+    setReviewEmails(parseReviewEmails(settings[AUTOMATION_SETTINGS_KEYS.reviewEmails]));
   }, [defaults]);
 
   const toggleNet = (id) =>
@@ -80,9 +105,11 @@ export function AutomationConfig() {
         agencyId,
         automationState: {
           publishMode,
-          reviewWindow,
-          reviewWindowHours,
-          quietHours,
+          holdWindowEnabled,
+          holdWindowHours,
+          quietHoursEnabled,
+          quietHoursStart,
+          quietHoursEnd,
           skipWeekends,
           captions,
           regenOnUpdate,
@@ -143,12 +170,16 @@ export function AutomationConfig() {
       <div className="stack gap-8">
         {publishMode === 'auto' ? (
           <AutoPublishDetails
-            reviewWindow={reviewWindow}
-            setReviewWindow={setReviewWindow}
-            reviewWindowHours={reviewWindowHours}
-            setReviewWindowHours={setReviewWindowHours}
-            quietHours={quietHours}
-            setQuietHours={setQuietHours}
+            reviewWindow={holdWindowEnabled}
+            setReviewWindow={setHoldWindowEnabled}
+            reviewWindowHours={holdWindowHours}
+            setReviewWindowHours={setHoldWindowHours}
+            quietHours={quietHoursEnabled}
+            setQuietHours={setQuietHoursEnabled}
+            quietHoursStart={quietHoursStart}
+            setQuietHoursStart={setQuietHoursStart}
+            quietHoursEnd={quietHoursEnd}
+            setQuietHoursEnd={setQuietHoursEnd}
             skipWeekends={skipWeekends}
             setSkipWeekends={setSkipWeekends}
             autoIncludeNetworks={autoIncludeNetworks}
@@ -158,8 +189,8 @@ export function AutomationConfig() {
           <ReviewModeDetails
             reviewEmails={reviewEmails}
             setReviewEmails={setReviewEmails}
-            quietHours={quietHours}
-            setQuietHours={setQuietHours}
+            quietHours={quietHoursEnabled}
+            setQuietHours={setQuietHoursEnabled}
           />
         )}
 

@@ -116,7 +116,7 @@ export function AdminView() {
 
         <div style={{ overflowX: 'auto' }}>
           {loading && agencies.length === 0 ? (
-            <div className="empty">Loadingâ€¦</div>
+            <div className="empty">Loading…</div>
           ) : filtered.length === 0 ? (
             <div className="empty">
               No agencies yet. Create one to wire a WordPress site to a GHL location.

@@ -1,5 +1,5 @@
 ﻿/**
- * The app's top-level navigation. A plain data map â€” adding a new page is a
+ * The app's top-level navigation. A plain data map — adding a new page is a
  * single entry here plus wiring it into <Shell>.
  *
  * Each entry's `path` is the route base; `requires` is the permission needed
@@ -7,8 +7,8 @@
  * and <Shell> redirects them if they type the URL directly.
  *
  * Today there are two user kinds (see ghlMvpContext.js):
- *   - GHL agency user â†’ admin: 'none', everything else 'rw'.
- *   - Platform super-admin (?admin=1) â†’ admin: 'rw', everything else 'none'.
+ *   - GHL agency user → admin: 'none', everything else 'rw'.
+ *   - Platform super-admin (?admin=1) → admin: 'rw', everything else 'none'.
  *
  * That gives the admin tab to the platform owner only, and keeps the
  * configuration tabs scoped to agency users.
@@ -19,6 +19,7 @@ export const PAGES = [
   { id: 'social', path: '/social', label: 'Social', icon: 'share', requires: { module: 'publish' } },
   { id: 'brand', path: '/brand', label: 'Brand', icon: 'palette', requires: { module: 'brand' } },
   { id: 'defaults', path: '/defaults', label: 'Defaults', icon: 'settings', requires: { module: 'reels' } },
+  { id: 'templates', path: '/templates', label: 'Templates', icon: 'grid', requires: { module: 'brand' } },
   { id: 'automation', path: '/automation', label: 'Automation', icon: 'zap', requires: { module: 'automation' } },
   { id: 'admin', path: '/v1/admin', label: 'Admin', icon: 'shield', requires: { module: 'admin' } },
 ];

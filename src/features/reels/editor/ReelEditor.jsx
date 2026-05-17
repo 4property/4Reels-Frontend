@@ -1,5 +1,5 @@
 ﻿/**
- * Reel editor â€” full-screen overlay opened from a Dashboard card.
+ * Reel editor — full-screen overlay opened from a Dashboard card.
  *
  * The frontend docs describe the eventual editor: 5 tabs (Photos, Subtitles,
  * Descriptions, Slides, Voiceover), a 3:4 live preview with a scene scrubber,
@@ -14,13 +14,16 @@
  *   - Photos panel uses the agency's property images endpoint when available.
  *
  * Everything else (slides timing, voiceover, AI regenerate, export, publish
- * buttonâ€¦) is rendered for design continuity but disabled.
+ * button…) is rendered for design continuity but disabled.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from '../../../lib/hooks/useToast.js';
+import { decodeHtmlEntities } from '../../../shared/decodeHtmlEntities.js';
+import { formatScheduledAt } from '../../../shared/formatScheduledAt.js';
 import { Icon } from '../../../shared/Icon.jsx';
 import { Spinner } from '../../../shared/Spinner.jsx';
 import { StatusBadge } from '../../../shared/StatusBadge.jsx';
-import { useSocials } from '../../../app/providers/TenantProvider.jsx';
+import { DashboardRefetchContext } from '../DashboardRefetchContext.js';
 import {
   reelVideoUrl,
   useApproveReel,
@@ -29,13 +32,14 @@ import {
   useRejectReel,
 } from '../hooks.js';
 import { DescriptionsPanel } from './DescriptionsPanel.jsx';
+import { MusicOverridePanel } from './MusicOverridePanel.jsx';
 import { PhotosPanel } from './PhotosPanel.jsx';
+import { RegenerateReelButton } from './RegenerateReelButton.jsx';
 import { SlidesPanel } from './SlidesPanel.jsx';
 import { SubtitlesPanel } from './SubtitlesPanel.jsx';
 import { VoiceoverPanel } from './VoiceoverPanel.jsx';
 import {
   CRANFORD_SUBTITLES,
-  DEFAULT_DESCRIPTION,
   DEFAULT_SLIDES,
   DEFAULT_TAKE,
 } from './defaults.js';
@@ -43,9 +47,9 @@ import './editor.css';
 
 const TABS = [
   { id: 'photos', icon: 'image', label: 'Photos' },
-  { id: 'subtitles', icon: 'type', label: 'Subtitles', stub: true },
+  { id: 'subtitles', icon: 'type', label: 'Subtitles' },
   { id: 'descriptions', icon: 'share', label: 'Descriptions' },
-  { id: 'slides', icon: 'film', label: 'Slides', stub: true },
+  { id: 'slides', icon: 'film', label: 'Slides' },
   { id: 'voiceover', icon: 'mic', label: 'Voiceover', stub: true },
 ];
 
@@ -56,7 +60,7 @@ export function ReelEditor({ siteId, sourcePropertyId, onClose }) {
     return (
       <div className="editor-overlay">
         <div className="editor-loading">
-          <Spinner /> Loading reelâ€¦
+          <Spinner /> Loading reel…
         </div>
       </div>
     );
@@ -89,7 +93,6 @@ export function ReelEditor({ siteId, sourcePropertyId, onClose }) {
 }
 
 function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
-  const socials = useSocials();
   const { images, loading: imagesLoading } = useReelImages(
     agencyId,
     reel.siteId,
@@ -98,8 +101,57 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
   const [approve, { loading: approving }] = useApproveReel();
   const [reject, { loading: rejecting }] = useRejectReel();
 
-  const [tab, setTab] = useState('photos');
+  const [tab, setTab] = useState('subtitles');
   const [statusMessage, setStatusMessage] = useState(null);
+  // Covers the full POST + refetch cycle so a double-click can't fire
+  // two approves: `approving` clears as soon as the POST returns 200,
+  // but the refetch stays in flight for several seconds.
+  const [submitting, setSubmitting] = useState(false);
+
+  // Feature 39: track whether anything in this editor session has been
+  // mutated (any successful PATCH from a panel, or an approve / reject).
+  // When the editor closes after at least one mutation, we ask the
+  // Dashboard to refetch so the modified reel rises to the top (the back
+  // already serves by `updated_at DESC`).
+  //
+  // We keep a ref so the close handler always observes the latest value
+  // without re-renders, even if the user closes the editor immediately
+  // after a debounced PATCH lands.
+  const dashboardRefetch = useContext(DashboardRefetchContext);
+  const hasMutatedRef = useRef(false);
+  const markMutated = useCallback(() => {
+    hasMutatedRef.current = true;
+  }, []);
+  const handleClose = useCallback(() => {
+    if (hasMutatedRef.current && typeof dashboardRefetch === 'function') {
+      // Trigger the refetch BEFORE navigating: the Dashboard is still
+      // mounted underneath the overlay, so its `useReels` will pick up the
+      // refresh. The fetch happens in parallel with the navigation so the
+      // user doesn't wait for the round-trip.
+      try {
+        dashboardRefetch();
+      } catch {
+        // Defensive: a Dashboard refetch failure must never break the close.
+      }
+    }
+    onClose();
+  }, [dashboardRefetch, onClose]);
+
+  // Feature 35: hydrate the per-tile `selected` flag from the back's
+  // `photos_override` when present. The override is an array of
+  // `{position, selected}` items keyed by the ingested `position`; missing
+  // entries fall back to the legacy heuristic (first 8 selected by default).
+  const overrideByPosition = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(reel?.photosOverride)) {
+      for (const item of reel.photosOverride) {
+        if (item && typeof item.position === 'number') {
+          map.set(item.position, Boolean(item.selected));
+        }
+      }
+    }
+    return map;
+  }, [reel?.photosOverride]);
 
   const livePhotos = useMemo(
     () =>
@@ -109,30 +161,46 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
         url: image.url,
         label: `IMAGE ${String(image.position + 1).padStart(2, '0')}`,
         aiScore: null,
-        selected: index < 8,
+        selected: overrideByPosition.has(image.position)
+          ? overrideByPosition.get(image.position)
+          : index < 8,
       })),
-    [images],
+    [images, overrideByPosition],
   );
   const [photos, setPhotos] = useState([]);
   useEffect(() => {
     setPhotos(livePhotos);
   }, [livePhotos]);
 
-  // Subtitles / slides / voiceover use the seed data that ships with the
-  // editor â€” the backend doesn't expose any of these yet, so we surface
-  // them inside `feature-stub` containers to keep the design continuity.
-  const [subtitles, setSubtitles] = useState(CRANFORD_SUBTITLES);
+  // Feature 36: hydrate subtitles from the per-reel override first, then
+  // from the worker's last serialized snapshot, then fall back to the seed
+  // data that ships with the editor. The Subtitles panel persists every
+  // edit via PATCH /reels/.../subtitles.
+  // Re-run only when the persisted override or snapshot changes — the
+  // other reel fields don't influence what the panel renders here.
+  const liveSubtitles = useMemo(
+    () => hydrateSubtitles(reel),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reel?.subtitlesOverride, reel?.publishSubtitlesSnapshot],
+  );
+  const [subtitles, setSubtitles] = useState(liveSubtitles);
+  useEffect(() => {
+    setSubtitles(liveSubtitles);
+  }, [liveSubtitles]);
 
-  const [descs, setDescs] = useState(() => {
-    const out = {};
-    for (const s of socials) {
-      out[s.id] = { enabled: false, text: DEFAULT_DESCRIPTION };
-    }
-    return out;
-  });
-  const [activeNet, setActiveNet] = useState(socials[0]?.id || 'instagram');
-
-  const [slides, setSlides] = useState(DEFAULT_SLIDES);
+  // Feature 37: hydrate slides from the per-reel manifest override. When no
+  // override is set the editor seeds from `DEFAULT_SLIDES` so the panel has
+  // something tangible (intro + outro) on a fresh reel. The Slides panel
+  // persists every edit via PATCH /reels/.../slides.
+  const liveSlides = useMemo(
+    () => hydrateSlides(reel),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reel?.manifestOverride],
+  );
+  const [slides, setSlides] = useState(liveSlides);
+  useEffect(() => {
+    setSlides(liveSlides);
+  }, [liveSlides]);
 
   const [voTakes, setVoTakes] = useState([DEFAULT_TAKE]);
   const [voMode, setVoMode] = useState('record');
@@ -140,28 +208,50 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
   const [voMusicVol, setVoMusicVol] = useState(35);
   const [voVoiceVol, setVoVoiceVol] = useState(90);
   const [voAiVoice, setVoAiVoice] = useState('emma-ie');
-  const [voAiScript, setVoAiScript] = useState(subtitles.map((s) => s.text).join(' '));
+  const [voAiScript, setVoAiScript] = useState(
+    subtitles.map((s) => s.text).join(' '),
+  );
 
   const handleApprove = async () => {
+    if (submitting) return;
     setStatusMessage(null);
+    setSubmitting(true);
     try {
-      await approve({
+      const result = await approve({
         agencyId,
         siteId: reel.siteId,
         sourcePropertyId: reel.sourcePropertyId,
       });
-      setStatusMessage({ tone: 'success', text: 'Reel approved.' });
+      const replay = Boolean(result?.idempotent_replay);
+      const scheduledLabel = formatScheduledAt(result?.scheduled_at);
+      let text;
+      if (scheduledLabel) {
+        // The backend chose a future publish slot (publish_window /
+        // skip_weekends rules pushed the approve out of the live window).
+        // Override the legacy copy so the user knows when it will land.
+        text = `Publicará el ${scheduledLabel}.`;
+      } else if (replay) {
+        text = 'Reel already approved, publish in progress.';
+      } else {
+        text = 'Reel approved.';
+      }
+      setStatusMessage({ tone: 'success', text });
+      toast.success(text);
+      markMutated();
       await refetch();
     } catch (err) {
-      setStatusMessage({
-        tone: 'danger',
-        text: err?.body?.error || err?.message || 'Approval failed.',
-      });
+      const text = err?.body?.error || err?.message || 'Approval failed.';
+      setStatusMessage({ tone: 'danger', text });
+      toast.error(text);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleReject = async () => {
+    if (submitting) return;
     setStatusMessage(null);
+    setSubmitting(true);
     try {
       await reject({
         agencyId,
@@ -169,12 +259,15 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
         sourcePropertyId: reel.sourcePropertyId,
       });
       setStatusMessage({ tone: 'success', text: 'Reel rejected.' });
+      toast.success('Reel rejected.');
+      markMutated();
       await refetch();
     } catch (err) {
-      setStatusMessage({
-        tone: 'danger',
-        text: err?.body?.error || err?.message || 'Rejection failed.',
-      });
+      const text = err?.body?.error || err?.message || 'Rejection failed.';
+      setStatusMessage({ tone: 'danger', text });
+      toast.error(text);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -186,11 +279,15 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
     <div className="editor-overlay">
       <EditorHeader
         reel={reel}
-        onClose={onClose}
+        agencyId={agencyId}
+        refetchReel={refetch}
+        onClose={handleClose}
         onApprove={handleApprove}
         onReject={handleReject}
         approving={approving}
         rejecting={rejecting}
+        submitting={submitting}
+        onMutate={markMutated}
       />
 
       {statusMessage && (
@@ -203,6 +300,13 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
         </div>
       )}
 
+      <MusicOverridePanel
+        reel={reel}
+        agencyId={agencyId}
+        refetchReel={refetch}
+        onMutate={markMutated}
+      />
+
       <div className="editor-body">
         <PreviewColumn reel={reel} videoSrc={videoSrc} />
 
@@ -212,7 +316,7 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
             setTab={setTab}
             counts={{
               photos: imagesLoading
-                ? 'â€¦'
+                ? '…'
                 : `${photos.filter((p) => p.selected).length}/${photos.length}`,
               subtitles: subtitles.length,
               slides: slides.filter((s) => s.enabled).length,
@@ -225,30 +329,42 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
                 photos={photos}
                 setPhotos={setPhotos}
                 loading={imagesLoading}
+                agencyId={agencyId}
+                reel={reel}
+                refetchReel={refetch}
+                onMutate={markMutated}
               />
             )}
             {tab === 'subtitles' && (
-              <div className="feature-stub" aria-disabled="true">
-                <SubtitlesPanel
-                  subtitles={subtitles}
-                  setSubtitles={setSubtitles}
-                  currentScene={0}
-                  setCurrentScene={() => {}}
-                />
-              </div>
+              <SubtitlesPanel
+                subtitles={subtitles}
+                setSubtitles={setSubtitles}
+                agencyId={agencyId}
+                reel={reel}
+                refetchReel={refetch}
+                currentScene={0}
+                setCurrentScene={() => {}}
+                onMutate={markMutated}
+              />
             )}
             {tab === 'descriptions' && (
               <DescriptionsPanel
-                descs={descs}
-                setDescs={setDescs}
-                activeNet={activeNet}
-                setActiveNet={setActiveNet}
+                reel={reel}
+                agencyId={agencyId}
+                refetchReel={refetch}
+                onMutate={markMutated}
               />
             )}
             {tab === 'slides' && (
-              <div className="feature-stub" aria-disabled="true">
-                <SlidesPanel slides={slides} setSlides={setSlides} />
-              </div>
+              <SlidesPanel
+                slides={slides}
+                setSlides={setSlides}
+                agencyId={agencyId}
+                reel={reel}
+                refetchReel={refetch}
+                targetDurationSeconds={reel.targetDurationSeconds}
+                onMutate={markMutated}
+              />
             )}
             {tab === 'voiceover' && (
               <div className="feature-stub" aria-disabled="true">
@@ -278,7 +394,18 @@ function ReelEditorInner({ reel, agencyId, onClose, refetch }) {
   );
 }
 
-function EditorHeader({ reel, onClose, onApprove, onReject, approving, rejecting }) {
+function EditorHeader({
+  reel,
+  agencyId,
+  refetchReel,
+  onClose,
+  onApprove,
+  onReject,
+  approving,
+  rejecting,
+  submitting,
+  onMutate,
+}) {
   const canApproveOrReject = reel.publishStatus === 'needs-approval';
   return (
     <div className="editor-header">
@@ -287,17 +414,23 @@ function EditorHeader({ reel, onClose, onApprove, onReject, approving, rejecting
       </button>
       <div className="editor-header-sep" />
       <div className="editor-header-meta">
-        <div className="editor-header-title">{reel.title}</div>
+        <div className="editor-header-title">{decodeHtmlEntities(reel.title)}</div>
         <div className="editor-header-sub">
           <span className="mono">
             {reel.siteId}#{reel.sourcePropertyId}
           </span>
-          {reel.address && <> Â· {reel.address}</>}
+          {reel.address && <> · {reel.address}</>}
         </div>
       </div>
       <StatusBadge status={reel.status} />
       {reel.publishStatus && <StatusBadge status={reel.publishStatus} />}
       <div className="editor-header-sep" />
+      <RegenerateReelButton
+        reel={reel}
+        agencyId={agencyId}
+        refetchReel={refetchReel}
+        onMutate={onMutate}
+      />
       <button
         className="btn coming-soon"
         type="button"
@@ -314,34 +447,25 @@ function EditorHeader({ reel, onClose, onApprove, onReject, approving, rejecting
       >
         <Icon name="download" size={14} /> Export
       </button>
-      {canApproveOrReject ? (
+      {canApproveOrReject && (
         <>
           <button
             className="btn primary"
             type="button"
             onClick={onApprove}
-            disabled={approving || rejecting}
+            disabled={approving || rejecting || submitting}
           >
-            {approving ? <Spinner /> : <Icon name="check" size={14} />} Approve
+            {approving ? <Spinner /> : <Icon name="check" size={14} />} Approve & Publish
           </button>
           <button
             className="btn"
             type="button"
             onClick={onReject}
-            disabled={approving || rejecting}
+            disabled={approving || rejecting || submitting}
           >
             {rejecting ? <Spinner /> : <Icon name="close" size={14} />} Reject
           </button>
         </>
-      ) : (
-        <button
-          className="btn primary coming-soon"
-          type="button"
-          disabled
-          title="Manual publishing from the editor is on the roadmap. Today the pipeline auto-publishes (or holds for review) based on the agency's automation settings."
-        >
-          <Icon name="send" size={14} /> Publish
-        </button>
       )}
     </div>
   );
@@ -376,10 +500,10 @@ function PreviewColumn({ reel, videoSrc }) {
 
       <div className="editor-preview-meta">
         <span>
-          <Icon name="webhook" size={11} /> Render: {reel.renderStatus || 'â€”'}
+          <Icon name="webhook" size={11} /> Render: {reel.renderStatus || '—'}
         </span>
         <span>
-          <Icon name="zap" size={11} /> Workflow: {reel.workflowState || 'â€”'}
+          <Icon name="zap" size={11} /> Workflow: {reel.workflowState || '—'}
         </span>
       </div>
     </div>
@@ -395,7 +519,7 @@ function EditorTabs({ tab, setTab, counts }) {
           type="button"
           className={`subtab ${tab === t.id ? 'active' : ''} ${t.stub ? 'tab-stub' : ''}`}
           onClick={() => setTab(t.id)}
-          title={t.stub ? 'Roadmap â€” UI shown as a design preview, not yet live.' : undefined}
+          title={t.stub ? 'Roadmap — UI shown as a design preview, not yet live.' : undefined}
         >
           <Icon name={t.icon} size={12} /> {t.label}
           {counts[t.id] !== undefined && <span className="badge">{counts[t.id]}</span>}
@@ -410,9 +534,17 @@ function EditorTabs({ tab, setTab, counts }) {
  * Photos panel powered by live data when available. Falls back to an empty
  * state if the agency hasn't ingested any property images yet.
  */
-function LivePhotosPanel({ photos, setPhotos, loading }) {
+function LivePhotosPanel({
+  photos,
+  setPhotos,
+  loading,
+  agencyId,
+  reel,
+  refetchReel,
+  onMutate,
+}) {
   if (loading && photos.length === 0) {
-    return <div className="empty">Loading property imagesâ€¦</div>;
+    return <div className="empty">Loading property images…</div>;
   }
   if (photos.length === 0) {
     return (
@@ -430,8 +562,8 @@ function LivePhotosPanel({ photos, setPhotos, loading }) {
         <div>
           <div className="panel-title">Property photos</div>
           <div className="panel-sub">
-            Drag to reorder, click to include / exclude. The order here drives the
-            scene order at re-render time (re-render is on the roadmap).
+            Drag to reorder, click to include / exclude. Changes are saved
+            automatically and trigger a re-render of the reel.
           </div>
         </div>
         <div className="row gap-4">
@@ -443,7 +575,84 @@ function LivePhotosPanel({ photos, setPhotos, loading }) {
           </button>
         </div>
       </div>
-      <PhotosPanel photos={photos} setPhotos={setPhotos} />
+      <PhotosPanel
+        photos={photos}
+        setPhotos={setPhotos}
+        agencyId={agencyId}
+        reel={reel}
+        refetchReel={refetchReel}
+        onMutate={onMutate}
+      />
     </div>
   );
+}
+
+/**
+ * Feature 36: pick the best source for the editor's working subtitles
+ * state. Precedence mirrors the backend's render-time precedence:
+ *   1. `reel.subtitlesOverride` — the persisted PATCH-driven override.
+ *   2. `reel.publishSubtitlesSnapshot` — last serialized worker snapshot
+ *      (what the renderer would use if no override existed).
+ *   3. `CRANFORD_SUBTITLES` — in-app design seed, used when neither the
+ *      override nor the snapshot is available (e.g. fresh reel before the
+ *      worker has run).
+ *
+ * The wire shape is `{ index, text, in_seconds, out_seconds }`; the editor
+ * keeps a UI-friendly `{ id, text, inSeconds, outSeconds }` so React keys
+ * are stable across re-orders.
+ */
+function hydrateSubtitles(reel) {
+  const override = reel?.subtitlesOverride;
+  if (Array.isArray(override) && override.length > 0) {
+    return override.map((cue, i) => ({
+      id: `o-${cue.index ?? i}`,
+      text: String(cue.text || ''),
+      inSeconds: Number(cue.in_seconds) || 0,
+      outSeconds: Number(cue.out_seconds) || 0,
+    }));
+  }
+  const snapshot = reel?.publishSubtitlesSnapshot;
+  if (Array.isArray(snapshot) && snapshot.length > 0) {
+    return snapshot.map((cue, i) => ({
+      id: `snap-${cue.index ?? i}`,
+      text: String(cue.text || ''),
+      inSeconds: Number(cue.in_seconds) || 0,
+      outSeconds: Number(cue.out_seconds) || 0,
+    }));
+  }
+  return CRANFORD_SUBTITLES.map((cue) => ({ ...cue }));
+}
+
+/**
+ * Feature 37: pick the best source for the editor's working slides state.
+ *   1. `reel.manifestOverride` — the persisted PATCH-driven slide manifest.
+ *   2. `DEFAULT_SLIDES` — in-app seed (agency intro + outro) used when no
+ *      override is set yet (the back has no equivalent slides snapshot to
+ *      surface today; future iterations may add one).
+ *
+ * The wire shape is `{slide_id, position, duration_seconds, kind,
+ * ...kind-specific}`; the editor keeps a UI-friendly
+ * `{id, kind, duration, enabled, label, source, ...}` so React keys are
+ * stable across re-orders and the existing `SlideRow` component keeps
+ * working without churn.
+ */
+function hydrateSlides(reel) {
+  const override = reel?.manifestOverride;
+  if (Array.isArray(override) && override.length > 0) {
+    return override.map((slide, i) => ({
+      id: String(slide.slide_id || `o-${i}`),
+      kind: String(slide.kind || 'text'),
+      duration: Number(slide.duration_seconds) || 0,
+      enabled: slide.enabled !== false,
+      locked: false,
+      source: slide.source ? String(slide.source) : 'custom',
+      label: typeof slide.label === 'string' ? slide.label : '',
+      ...(slide.text != null ? { text: String(slide.text) } : {}),
+      ...(slide.url != null ? { url: String(slide.url) } : {}),
+      ...(slide.status != null ? { status: String(slide.status) } : {}),
+      ...(slide.rating != null ? { rating: Number(slide.rating) } : {}),
+      ...(slide.author != null ? { author: String(slide.author) } : {}),
+    }));
+  }
+  return DEFAULT_SLIDES.map((slide) => ({ ...slide }));
 }

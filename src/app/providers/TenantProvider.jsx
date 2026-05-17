@@ -2,10 +2,10 @@
  * Loads the current tenant's cross-cutting data once and shares it with every
  * feature via a small set of hooks:
  *
- *   useAgency()     â†’ { name, plan, logo, color, ... } from the active agency
- *   useSocials()    â†’ social networks fetched from `/v1/admin/agencies/{id}/social-accounts`
- *   useVariables()  â†’ list of {{tag}} placeholders for descriptions (static)
- *   useSocial(id)   â†’ convenience lookup for a single network by id
+ *   useAgency()     → { name, plan, logo, color, ... } from the active agency
+ *   useSocials()    → social networks fetched from `/v1/admin/agencies/{id}/social-accounts`
+ *   useVariables()  → list of {{tag}} placeholders for descriptions (static)
+ *   useSocial(id)   → convenience lookup for a single network by id
  *
  * Rendered once near the root so sub-trees don't refetch. The provider is
  * driven by `useCurrentAgency()` from the session, so all features render
@@ -14,24 +14,39 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiRequest } from '../../lib/api/client.js';
 import { useCurrentAgency } from '../../features/session/index.js';
+import { ALLOWED_SOCIAL_TEMPLATE_VARIABLES } from '../../features/social/constants.js';
 
 const TenantContext = createContext(/** @type {any} */(null));
 
-const STATIC_VARIABLES = [
-  { key: 'property_title', sample: '2-bed apartment Â· Cranford Court' },
-  { key: 'price', sample: 'â‚¬385,000' },
-  { key: 'bedrooms', sample: '2' },
-  { key: 'bathrooms', sample: '1' },
-  { key: 'size_m2', sample: '68' },
-  { key: 'property_type', sample: 'Apartment' },
-  { key: 'city', sample: 'Dublin 4' },
-  { key: 'neighborhood', sample: 'Stillorgan' },
-  { key: 'eircode', sample: 'D04 K3F8' },
-  { key: 'short_description', sample: 'Bright 2-bed apartment in a sought-after development.' },
-  { key: 'agent_name', sample: 'Marvin Farrell' },
-  { key: 'agent_phone', sample: '085 118 5832' },
-  { key: 'booking_link', sample: 'ckpestateagents.ie/view/r8832' },
-];
+// Per-key sample copy shown on chip hover and used by the live preview. Keys
+// MUST be a subset of `ALLOWED_SOCIAL_TEMPLATE_VARIABLES` so a single edit in
+// `features/social/constants.js` propagates here without having to touch two
+// places. The order of `STATIC_VARIABLES` (and therefore the chip row) is the
+// order of the canonical array, which groups property → location →
+// descriptive → agent → links.
+const VARIABLE_SAMPLES = {
+  property_title: '2-bed apartment · Cranford Court',
+  price: '€385,000',
+  bedrooms: '2',
+  bathrooms: '1',
+  size_m2: '68',
+  property_type: 'Apartment',
+  city: 'Dublin 4',
+  neighborhood: 'Stillorgan',
+  neighborhood_tag: 'cranfordcourt',
+  eircode: 'D04 K3F8',
+  short_description: 'Bright 2-bed apartment in a sought-after development.',
+  agent_name: 'Marvin Farrell',
+  agent_phone: '085 118 5832',
+  agent_email: 'sales@4pm.ie',
+  booking_link: 'https://ckpestateagents.ie/view/r8832',
+  property_url: 'https://example.com/property/123',
+};
+
+const STATIC_VARIABLES = ALLOWED_SOCIAL_TEMPLATE_VARIABLES.map((key) => ({
+  key,
+  sample: VARIABLE_SAMPLES[key] ?? '',
+}));
 
 const PLATFORM_PRESETS = {
   instagram: { name: 'Instagram', icon: 'instagram', color: '#E1306C' },
@@ -41,6 +56,7 @@ const PLATFORM_PRESETS = {
   linkedin: { name: 'LinkedIn', icon: 'linkedin', color: '#0A66C2' },
   gbp: { name: 'Google Business', icon: 'google-business', color: '#4285F4' },
   gmb: { name: 'Google Business', icon: 'google-business', color: '#4285F4' },
+  pinterest: { name: 'Pinterest', icon: 'pinterest', color: '#E60023' },
 };
 
 export function TenantProvider({ children }) {
@@ -121,7 +137,15 @@ export function TenantProvider({ children }) {
 }
 
 function adaptSocialAccounts(response) {
-  const desiredOrder = ['instagram', 'tiktok', 'youtube', 'facebook', 'linkedin', 'gbp'];
+  const desiredOrder = [
+    'instagram',
+    'tiktok',
+    'youtube',
+    'facebook',
+    'linkedin',
+    'gbp',
+    'pinterest',
+  ];
   const items = Array.isArray(response?.items) ? response.items : [];
   const byPlatform = new Map();
   for (const account of items) {
@@ -136,7 +160,11 @@ function adaptSocialAccounts(response) {
       icon: 'share',
       color: '#666',
     };
-    const matching = byPlatform.get(platform) || byPlatform.get(platform === 'gbp' ? 'gmb' : platform) || [];
+    const matching =
+      byPlatform.get(platform) ||
+      byPlatform.get(platform === 'gbp' ? 'gmb' : platform) ||
+      byPlatform.get(platform === 'pinterest' ? 'pin' : platform) ||
+      [];
     const account = matching[0];
     return {
       id: platform,

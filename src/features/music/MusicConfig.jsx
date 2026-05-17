@@ -3,8 +3,8 @@ import { Icon } from '../../shared/Icon.jsx';
 import {
   useDecommissionTrack,
   useReconfigureTrack,
-  useRegisterTrack,
   useTracks,
+  useUploadTrack,
 } from './hooks.js';
 import { MusicLibrary } from './MusicLibrary.jsx';
 import { MusicRules } from './MusicRules.jsx';
@@ -12,7 +12,7 @@ import './music.css';
 
 export function MusicConfig() {
   const { tracks, count, loading, error, agencyId, refetch } = useTracks();
-  const [registerTrack, registerState] = useRegisterTrack();
+  const [uploadTrack, uploadState] = useUploadTrack();
   const [reconfigureTrack, reconfigureState] = useReconfigureTrack();
   const [decommissionTrack, decommissionState] = useDecommissionTrack();
   const [tab, setTab] = useState('library');
@@ -25,11 +25,12 @@ export function MusicConfig() {
       refetch();
     } catch (err) {
       setActionError(err);
+      throw err;
     }
   };
 
   const busy =
-    registerState.loading || reconfigureState.loading || decommissionState.loading;
+    uploadState.loading || reconfigureState.loading || decommissionState.loading;
 
   return (
     <div>
@@ -59,7 +60,7 @@ export function MusicConfig() {
         <div className="card music-note danger">
           <div className="t-medium">Music request failed.</div>
           <div className="t-sm t-muted">
-            {(actionError || error)?.message || 'The backend rejected the request.'}
+            {humanizeMusicError(actionError || error)}
           </div>
         </div>
       )}
@@ -84,8 +85,9 @@ export function MusicConfig() {
           tracks={tracks}
           loading={loading}
           disabled={!agencyId || busy}
-          onCreate={(body) =>
-            refreshAfter(() => registerTrack({ agencyId, body }))
+          uploading={uploadState.loading}
+          onCreate={(formData) =>
+            refreshAfter(() => uploadTrack({ agencyId, formData }))
           }
           onUpdate={(musicId, body) =>
             refreshAfter(() => reconfigureTrack({ agencyId, musicId, body }))
@@ -99,4 +101,26 @@ export function MusicConfig() {
       )}
     </div>
   );
+}
+
+/**
+ * Map the canonical music-upload error codes from feature 22 of the back to
+ * user-friendly copy. Falls back to the backend's own message when the
+ * code is unknown so the user always sees something actionable.
+ */
+function humanizeMusicError(err) {
+  if (!err) return 'The backend rejected the request.';
+  const status = err.status;
+  const body = err.body || {};
+  const code = body?.code || body?.error;
+
+  if (status === 413) return 'File too large (max 20MB).';
+  if (status === 400 && code === 'MUSIC_TRACK_AUDIO_INVALID') {
+    if (body?.hint) return body.hint;
+    return "Couldn't process the audio (corrupt file or unsupported format?).";
+  }
+  if (status === 422) {
+    return body?.message || body?.error || 'Missing required fields (display_name).';
+  }
+  return body?.message || body?.error || err.message || 'The backend rejected the request.';
 }

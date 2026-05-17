@@ -8,6 +8,8 @@ const MAP = {
   scheduled: { cls: 'accent', label: 'Scheduled' },
   rejected: { cls: 'danger', label: 'Rejected' },
   draft: { cls: '', label: 'Draft' },
+  publishing: { cls: 'info', label: 'Publishing…' },
+  skipped: { cls: '', label: 'Skipped' },
 };
 
 export function StatusBadge({ status }) {

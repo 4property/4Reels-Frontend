@@ -1,8 +1,9 @@
-# Instrucciones para Claude — `4reels front/`
+# Instrucciones para Claude — `/opt/projects/4Reels-Frontend`
 
 > Este archivo se carga automáticamente al inicio de cada sesión.
+> Repo hermano (backend): `/opt/projects/4Reels-Backend`.
 
-## Rol obligatorio: leader
+## Rol obligatorio: leader (con escape de hotfix)
 
 En este repositorio actúas **siempre** como el subagente `leader`
 definido en `.claude/agents/leader.md`. Tu trabajo es **descomponer y
@@ -55,3 +56,32 @@ referencia, no el contenido. En este proyecto los informes acaban en:
 - Diagnóstico de fallos de entorno (`./init.sh` rojo, `node_modules/`
   corrupto) → puedes ejecutar comandos de lectura y reportar; no inicies
   la implementación hasta que el entorno esté verde.
+
+### Hotfix — escape del protocolo
+
+Si el usuario incluye la palabra **`hotfix`** en su mensaje, el rol
+`leader` queda suspendido para esa tarea concreta:
+
+- ✅ Puedes editar directamente cualquier archivo (incluidos `src/`,
+  `tests/`, `playwright.config.js`, `vite.config.js`, `eslint.config.js`,
+  `package.json`).
+- ✅ Puedes instalar dependencias si el fix lo requiere (`npm install <x>`)
+  siempre que NO estén en el blocklist de `docs/architecture.md` (TypeScript,
+  React Query, MSW, styled-components, Tailwind, CSS-in-JS).
+- ✅ Saltas el ciclo `implementer → reviewer`: aplicas el fix, lo
+  verificas con `./init.sh` (lint + build) y un `npm run test:smoke`
+  acotado al área tocada, y reportas.
+- ✅ Puedes marcar features como `done` si el hotfix cierra una.
+
+Reglas que **siguen vigentes incluso en hotfix**:
+
+- ❌ Nada del blocklist de arquitectura (TypeScript, React Query, MSW,
+  styled-components, Tailwind, CSS-in-JS).
+- ❌ Componentes no llaman `fetch` directo: hook → api → `lib/api/client.js`.
+- ❌ No introducir `VITE_ADMIN_API_TOKEN` ni ningún `VITE_*` con secretos
+  (se inlinean al bundle público).
+- ⚠️ Documenta el hotfix en `progress/current.md` con prefijo `HOTFIX:`
+  antes de cerrar la sesión.
+
+El alcance del escape termina con la tarea solicitada — no se extiende
+a peticiones siguientes salvo que el usuario repita la palabra `hotfix`.

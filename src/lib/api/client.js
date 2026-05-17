@@ -3,10 +3,10 @@
  *
  * All paths route to the live backend at `VITE_MVP_API_URL`. The historical
  * in-memory mock layer was retired once every feature page started talking
- * to the real `/v1/admin/agencies/...` surface â€” keeping it would just be a
+ * to the real `/v1/admin/agencies/...` surface — keeping it would just be a
  * second source of truth that drifts.
  *
- * Feature code must never call `fetch` directly â€” call `apiRequest` through
+ * Feature code must never call `fetch` directly — call `apiRequest` through
  * a feature-level `api.js` module so paths and shapes stay co-located with
  * the feature that owns them.
  */
@@ -22,7 +22,7 @@ export const API_TRACE = import.meta.env.VITE_API_TRACE !== 'false';
  *
  * @typedef {object} RequestOptions
  * @property {HttpMethod} [method]      HTTP verb, defaults to 'GET'.
- * @property {unknown}    [body]        Plain JS object â€” will be JSON-stringified.
+ * @property {unknown}    [body]        Plain JS object — will be JSON-stringified.
  * @property {Record<string, string|number|boolean|undefined>} [query]
  *                                      Flat object of query params.
  * @property {Record<string, string>}   [headers]  Extra headers.
@@ -33,6 +33,11 @@ export const API_TRACE = import.meta.env.VITE_API_TRACE !== 'false';
  * @param {string} path  Path starting with `/`, e.g. `/v1/admin/agencies`.
  * @param {RequestOptions} [options]
  * @returns {Promise<any>} Parsed JSON response.
+ *
+ * Multipart: pass a `FormData` instance as `body`. The helper skips JSON
+ * serialization and omits the `Content-Type` header so the browser sets the
+ * `multipart/form-data; boundary=...` value automatically. All other paths
+ * keep the JSON contract (extra='forbid' on the backend stays honest).
  */
 export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, query, headers, signal } = options;
@@ -48,17 +53,28 @@ export async function apiRequest(path, options = {}) {
     }
   }
 
+  const isMultipart = typeof FormData !== 'undefined' && body instanceof FormData;
+  const requestHeaders = {
+    Accept: 'application/json',
+    ...(isMultipart ? {} : { 'Content-Type': 'application/json' }),
+    ...getAuthHeaders(),
+    ...headers,
+  };
+  let requestBody;
+  if (body === undefined) {
+    requestBody = undefined;
+  } else if (isMultipart) {
+    requestBody = body;
+  } else {
+    requestBody = JSON.stringify(body);
+  }
+
   let res;
   try {
     res = await fetch(url.toString(), {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...getAuthHeaders(),
-        ...headers,
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: requestHeaders,
+      body: requestBody,
       signal,
       credentials: 'omit',
     });
@@ -100,6 +116,46 @@ export async function apiRequest(path, options = {}) {
 
   if (res.status === 204) return null;
   return payload ?? null;
+}
+
+/**
+ * GET a binary asset (e.g. the brand logo file stream) with the same bearer
+ * token that `apiRequest` would attach. Returns the raw `Blob` so callers can
+ * wrap it in `URL.createObjectURL(...)` for `<img src>` consumption — this is
+ * the only way to render protected images, since the browser cannot attach
+ * `Authorization` headers to a plain `<img>` request.
+ *
+ * The caller is responsible for revoking the object URL when done.
+ */
+export async function apiFetchBlob(path, options = {}) {
+  const { signal } = options;
+  const baseUrl = MVP_API_URL || BASE_URL;
+  const url = new URL(`${trimTrailingSlash(baseUrl)}${path}`, window.location.origin);
+  const requestHeaders = {
+    Accept: '*/*',
+    ...getAuthHeaders(),
+  };
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: requestHeaders,
+    signal,
+    credentials: 'omit',
+  });
+  if (!res.ok) {
+    if (res.status === 401 && isAdminPath(path)) {
+      notifyUnauthorized();
+    }
+    throw new ApiError(res.status, res.statusText, null, {
+      traceId: createTraceId(),
+      method: 'GET',
+      path,
+      target: 'live-backend',
+      url: url.toString(),
+      status: res.status,
+      ok: false,
+    });
+  }
+  return res.blob();
 }
 
 /**
@@ -187,6 +243,9 @@ function logApiError(trace) {
 
 function redact(value) {
   if (!value || typeof value !== 'object') return value;
+  if (typeof FormData !== 'undefined' && value instanceof FormData) {
+    return '[formdata]';
+  }
   if (Array.isArray(value)) return value.map(redact);
 
   return Object.fromEntries(

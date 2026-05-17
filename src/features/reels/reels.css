@@ -3,7 +3,7 @@
 /* ── Dashboard page ────────────────────────────────────────────────── */
 .reels-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-6);
   margin-bottom: var(--space-10);
 }
@@ -141,6 +141,7 @@
   font-weight: var(--fw-medium);
   color: var(--text);
   white-space: nowrap;
+  margin-top: var(--space-2);
 }
 
 .reel-card-footer {
@@ -303,6 +304,100 @@
   color: #fff;
 }
 
+/* ── Filters + pagination (feature 32) ────────────────────────────── */
+.reels-toolbar-filters {
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+
+.reels-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+.reels-filter-label { white-space: nowrap; }
+.reels-filter .select { min-width: 140px; }
+
+.reels-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-7);
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.reels-pagination-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+.reels-pagination-size .select { min-width: 72px; }
+
+.reels-pagination-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.reels-pagination-summary {
+  font-size: var(--fs-12);
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  min-width: 160px;
+  text-align: center;
+}
+
+.reels-pagination-page {
+  font-size: var(--fs-11);
+}
+
+.reels-empty {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+/* ── Skeleton (loading state — only the body area) ───────────────── */
+.reels-skeleton-card,
+.reels-skeleton-row {
+  background: linear-gradient(
+    90deg,
+    var(--bg-sunken) 0%,
+    var(--bg-soft) 50%,
+    var(--bg-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: reels-shimmer 1.4s linear infinite;
+  border-radius: var(--r-sm);
+}
+
+.reels-skeleton-card { aspect-ratio: 3 / 4; }
+
+.reels-skeleton-table {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.reels-skeleton-row { height: 56px; }
+
+@keyframes reels-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reels-skeleton-card,
+  .reels-skeleton-row {
+    animation: none;
+    background: var(--bg-sunken);
+  }
+}
+
 /* ───────────────────────────────────────────────────────────────────── */
 /*                               TABLET                                  */
 /* ───────────────────────────────────────────────────────────────────── */
@@ -311,6 +406,7 @@
   .reels-toolbar { gap: var(--space-4); }
   .reels-toolbar .search { min-width: 180px; }
   .reels-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .reels-filter .select { min-width: 120px; }
 }
 
 /* ───────────────────────────────────────────────────────────────────── */
@@ -318,7 +414,7 @@
 /* ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 560px) {
   .reels-metrics {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: var(--space-4);
   }
   .reels-metric-card { padding: var(--space-5) var(--space-6); }
@@ -329,6 +425,10 @@
   }
   .reels-toolbar .row { flex-wrap: wrap; }
   .reels-toolbar .search { min-width: 0; flex: 1 1 auto; }
+  .reels-filter { width: 100%; justify-content: space-between; }
+  .reels-filter .select { flex: 1 1 auto; min-width: 0; }
+  .reels-pagination { justify-content: center; }
+  .reels-pagination-summary { min-width: 0; }
   .reels-grid {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-5);

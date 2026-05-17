@@ -7,6 +7,14 @@
  *   - Per-network description templates live on
  *     `extra_settings.social_templates` and are managed by the dedicated
  *     `/social-templates` endpoint pair.
+ *
+ * `saveSocialTemplates` is passthrough on the per-platform value: each
+ * entry in `templates` can be either a plain string (legacy shape, kept for
+ * the agency-config drawer's Default descriptions panel — feature 8) or the
+ * rich object `{description_template, title_template, hashtags}` introduced
+ * by feature 20. The backend accepts both shapes natively (a bare string is
+ * normalised to `{description_template: string, title_template: '', hashtags: []}`
+ * server-side, see feature 20 back review).
  */
 export const socialApi = {
   listConnectedAccounts: (agencyId) =>

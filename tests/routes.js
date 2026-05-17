@@ -13,6 +13,7 @@ export const ROUTES = [
   { name: 'social', path: '/social', mode: 'agency' },
   { name: 'brand', path: '/brand', mode: 'agency' },
   { name: 'defaults', path: '/defaults', mode: 'agency' },
+  { name: 'templates', path: '/templates', mode: 'agency' },
   { name: 'automation', path: '/automation', mode: 'agency' },
   { name: 'admin', path: '/v1/admin?admin=1', mode: 'admin' },
 ];

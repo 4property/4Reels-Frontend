@@ -133,6 +133,11 @@
   color: var(--text);
   box-shadow: var(--shadow-xs);
 }
+.seg button.is-disabled,
+.seg button[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 @media (max-width: 900px) {
   .search { min-width: 160px; }

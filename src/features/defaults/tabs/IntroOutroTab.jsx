@@ -1,36 +1,33 @@
 import { Toggle } from '../../../shared/Toggle.jsx';
-import { IntroOutroCard } from '../IntroOutroCard.jsx';
+import { IntroCard } from '../IntroCard.jsx';
+import { OutroCard } from '../OutroCard.jsx';
 
-export function IntroOutroTab({ state, set }) {
+export function IntroOutroTab({ state, set, defaults, agencyId, refetchDefaults }) {
   const {
-    introEnabled, introSource, introDuration, introFile,
-    outroEnabled, outroSource, outroDuration, outroFile,
+    introEnabled, introDuration,
+    outroEnabled, outroDuration,
     skipForRentals,
   } = state;
 
   return (
     <>
-      <IntroOutroCard
-        kind="Intro"
+      <IntroCard
         enabled={introEnabled}
         setEnabled={(v) => set({ introEnabled: v })}
-        source={introSource}
-        setSource={(v) => set({ introSource: v })}
         duration={introDuration}
         setDuration={(v) => set({ introDuration: v })}
-        file={introFile}
-        setFile={(v) => set({ introFile: v })}
+        defaults={defaults}
+        agencyId={agencyId}
+        refetchDefaults={refetchDefaults}
       />
-      <IntroOutroCard
-        kind="Outro"
+      <OutroCard
         enabled={outroEnabled}
         setEnabled={(v) => set({ outroEnabled: v })}
-        source={outroSource}
-        setSource={(v) => set({ outroSource: v })}
         duration={outroDuration}
         setDuration={(v) => set({ outroDuration: v })}
-        file={outroFile}
-        setFile={(v) => set({ outroFile: v })}
+        defaults={defaults}
+        agencyId={agencyId}
+        refetchDefaults={refetchDefaults}
       />
 
       <div className="card">

@@ -1,5 +1,6 @@
 import { Checkbox } from '../../shared/Checkbox.jsx';
 import { Cover } from '../../shared/Cover.jsx';
+import { decodeHtmlEntities } from '../../shared/decodeHtmlEntities.js';
 import { Icon } from '../../shared/Icon.jsx';
 import { SocialDot } from '../../shared/SocialDot.jsx';
 import { StatusBadge } from '../../shared/StatusBadge.jsx';
@@ -29,7 +30,9 @@ export function ReelsTable({ reels, onOpen }) {
           </tr>
         </thead>
         <tbody>
-          {reels.map((r) => (
+          {reels.map((r) => {
+            const title = decodeHtmlEntities(r.title);
+            return (
             <tr key={r.id} className="reels-table-row" onClick={() => onOpen(r)}>
               <td onClick={(e) => e.stopPropagation()}>
                 <Checkbox checked={false} onChange={() => {}} />
@@ -37,10 +40,15 @@ export function ReelsTable({ reels, onOpen }) {
               <td>
                 <div className="row gap-5">
                   <div className="reels-table-thumb">
-                    <Cover kind={r.cover} ratio="3/4" video="hover" />
+                    <Cover
+                      kind={r.cover || 'default'}
+                      src={r.coverUrl}
+                      ratio="3/4"
+                      label={title}
+                    />
                   </div>
                   <div>
-                    <div className="reels-table-title">{r.title}</div>
+                    <div className="reels-table-title">{title}</div>
                     <div className="reels-table-subtitle">{r.address}</div>
                   </div>
                 </div>
@@ -69,7 +77,8 @@ export function ReelsTable({ reels, onOpen }) {
                 <button className="icon-btn"><Icon name="more" /></button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

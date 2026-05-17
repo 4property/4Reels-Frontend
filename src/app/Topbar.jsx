@@ -13,7 +13,7 @@ import './app.css';
 /** Sticky top nav. Tabs are filtered by the current user's permissions so a
  *  Viewer never sees Admin, etc. Active tab is derived from the URL.
  *
- *  On tablet / mobile (â‰¤900px) the inline tabs collapse into a hamburguesa
+ *  On tablet / mobile (≤900px) the inline tabs collapse into a hamburguesa
  *  menu (<MobileNav/>). Desktop layout is unchanged. */
 export function Topbar({ onOpenNotifications }) {
   const { theme, toggle: toggleTheme } = useTheme();
@@ -31,7 +31,7 @@ export function Topbar({ onOpenNotifications }) {
 
   return (
     <>
-      <div className="topbar" data-screen-label={`Nav Â· ${activeLabel}`}>
+      <div className="topbar" data-screen-label={`Nav · ${activeLabel}`}>
         <button
           className="icon-btn topbar-burger"
           onClick={() => setMenuOpen(true)}
@@ -69,8 +69,8 @@ export function Topbar({ onOpenNotifications }) {
         <div className="topbar-right">
           <div className="search topbar-search">
             <Icon name="search" size={14} />
-            <input placeholder="Search reels, propertiesâ€¦" />
-            <span className="kbd">âŒ˜K</span>
+            <input placeholder="Search reels, properties…" />
+            <span className="kbd">⌘K</span>
           </div>
           <button className="icon-btn topbar-mobile-search" title="Search">
             <Icon name="search" size={15} />

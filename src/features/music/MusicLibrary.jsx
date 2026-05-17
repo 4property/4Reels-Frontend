@@ -1,19 +1,50 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Icon } from '../../shared/Icon.jsx';
 import { Segmented } from '../../shared/Segmented.jsx';
+import { Spinner } from '../../shared/Spinner.jsx';
 
-const EMPTY_FORM = {
+const EMPTY_CREATE_FORM = {
   display_name: '',
-  object_key: '',
-  duration_seconds: '30',
+  is_default: false,
+  file: null,
+  fileName: '',
+};
+
+const EMPTY_EDIT_FORM = {
+  display_name: '',
   is_default: false,
 };
 
-export function MusicLibrary({ tracks, loading, disabled, onCreate, onUpdate, onDelete }) {
+const ACCEPTED_MIME = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav'];
+const ACCEPT_ATTR = ACCEPTED_MIME.join(',');
+const MAX_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Music library tab.
+ *
+ *   Create flow: <input type="file"> + display_name + is_default. The audio
+ *   bytes go up as multipart; the server derives object_key and
+ *   duration_seconds via ffprobe so the user never types them.
+ *
+ *   Edit flow: display_name + is_default only. object_key / duration_seconds
+ *   stay server-owned and are surfaced read-only in the table.
+ */
+export function MusicLibrary({
+  tracks,
+  loading,
+  disabled,
+  uploading,
+  onCreate,
+  onUpdate,
+  onDelete,
+}) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [fileError, setFileError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const filtered = useMemo(
     () =>
@@ -25,108 +56,205 @@ export function MusicLibrary({ tracks, loading, disabled, onCreate, onUpdate, on
     [filter, search, tracks],
   );
 
+  const resetCreateForm = () => {
+    setCreateForm(EMPTY_CREATE_FORM);
+    setFileError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePickFile = (event) => {
+    const file = event.target.files?.[0] || null;
+    if (!file) {
+      setCreateForm((current) => ({ ...current, file: null, fileName: '' }));
+      return;
+    }
+    if (file.type && !ACCEPTED_MIME.includes(file.type)) {
+      setFileError('Unsupported format. Use mp3, m4a or wav.');
+      event.target.value = '';
+      setCreateForm((current) => ({ ...current, file: null, fileName: '' }));
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setFileError('File too large (max 20MB).');
+      event.target.value = '';
+      setCreateForm((current) => ({ ...current, file: null, fileName: '' }));
+      return;
+    }
+    setFileError(null);
+    setCreateForm((current) => ({ ...current, file, fileName: file.name }));
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    const body = {
-      display_name: form.display_name.trim(),
-      object_key: form.object_key.trim(),
-      duration_seconds: Number(form.duration_seconds),
-      is_default: Boolean(form.is_default),
-    };
     if (editingId) {
+      const body = {
+        display_name: editForm.display_name.trim(),
+        is_default: Boolean(editForm.is_default),
+      };
       await onUpdate(editingId, body);
-    } else {
-      await onCreate(body);
+      setEditingId(null);
+      setEditForm(EMPTY_EDIT_FORM);
+      return;
     }
-    setEditingId(null);
-    setForm(EMPTY_FORM);
+
+    if (!createForm.file) {
+      setFileError('Selecciona un archivo de audio.');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', createForm.file, createForm.file.name);
+    formData.append('display_name', createForm.display_name.trim());
+    formData.append('is_default', createForm.is_default ? 'true' : 'false');
+    try {
+      await onCreate(formData);
+      resetCreateForm();
+    } catch {
+      // The parent surfaces the error message; keep form contents so the
+      // user can correct and retry without re-picking the file.
+    }
   };
 
   const startEdit = (track) => {
     setEditingId(track.music_id);
-    setForm({
+    setEditForm({
       display_name: track.display_name || '',
-      object_key: track.object_key || '',
-      duration_seconds: String(track.duration_seconds || 30),
       is_default: Boolean(track.is_default),
     });
+    setFileError(null);
   };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm(EMPTY_EDIT_FORM);
+  };
+
+  const isEdit = Boolean(editingId);
+  const submitDisabled =
+    disabled || uploading || (isEdit ? false : !createForm.file);
 
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
       <form className="music-form" onSubmit={submit}>
-        <label className="field">
-          <span className="label">Display name</span>
-          <input
-            className="input"
-            value={form.display_name}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, display_name: event.target.value }))
-            }
-            placeholder="Sunset Drive"
-            required
-            disabled={disabled}
-          />
-        </label>
-        <label className="field music-form-key">
-          <span className="label">Object key</span>
-          <input
-            className="input mono"
-            value={form.object_key}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, object_key: event.target.value }))
-            }
-            placeholder="agencies/ckp/music/sunset-drive.mp3"
-            required
-            disabled={disabled}
-          />
-        </label>
-        <label className="field music-form-duration">
-          <span className="label">Duration</span>
-          <input
-            className="input"
-            type="number"
-            min="1"
-            max="600"
-            value={form.duration_seconds}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                duration_seconds: event.target.value,
-              }))
-            }
-            required
-            disabled={disabled}
-          />
-        </label>
-        <label className="music-default-check">
-          <input
-            type="checkbox"
-            checked={form.is_default}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, is_default: event.target.checked }))
-            }
-            disabled={disabled}
-          />
-          <span>Default track</span>
-        </label>
+        {isEdit ? (
+          <>
+            <label className="field music-form-name">
+              <span className="label">Display name</span>
+              <input
+                className="input"
+                value={editForm.display_name}
+                onChange={(event) =>
+                  setEditForm((current) => ({
+                    ...current,
+                    display_name: event.target.value,
+                  }))
+                }
+                placeholder="Sunset Drive"
+                required
+                disabled={disabled}
+              />
+            </label>
+            <label className="music-default-check">
+              <input
+                type="checkbox"
+                checked={editForm.is_default}
+                onChange={(event) =>
+                  setEditForm((current) => ({
+                    ...current,
+                    is_default: event.target.checked,
+                  }))
+                }
+                disabled={disabled}
+              />
+              <span>Default track</span>
+            </label>
+          </>
+        ) : (
+          <>
+            <label className="field music-form-file">
+              <span className="label">Audio file (mp3/m4a/wav, max 20MB)</span>
+              <input
+                ref={fileInputRef}
+                className="input"
+                type="file"
+                accept={ACCEPT_ATTR}
+                onChange={handlePickFile}
+                required
+                disabled={disabled || uploading}
+                data-testid="music-upload-input"
+              />
+              {createForm.fileName && (
+                <span className="music-file-name mono">{createForm.fileName}</span>
+              )}
+              {fileError && (
+                <span
+                  className="music-file-error"
+                  data-testid="music-upload-error"
+                >
+                  {fileError}
+                </span>
+              )}
+            </label>
+            <label className="field music-form-name">
+              <span className="label">Display name</span>
+              <input
+                className="input"
+                value={createForm.display_name}
+                onChange={(event) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    display_name: event.target.value,
+                  }))
+                }
+                placeholder="Sunset Drive"
+                required
+                disabled={disabled || uploading}
+              />
+            </label>
+            <label className="music-default-check">
+              <input
+                type="checkbox"
+                checked={createForm.is_default}
+                onChange={(event) =>
+                  setCreateForm((current) => ({
+                    ...current,
+                    is_default: event.target.checked,
+                  }))
+                }
+                disabled={disabled || uploading}
+              />
+              <span>Default track</span>
+            </label>
+          </>
+        )}
         <div className="music-form-actions">
-          {editingId && (
+          {isEdit && (
             <button
               className="btn"
               type="button"
-              onClick={() => {
-                setEditingId(null);
-                setForm(EMPTY_FORM);
-              }}
+              onClick={cancelEdit}
               disabled={disabled}
             >
               <Icon name="close" size={14} /> Cancel
             </button>
           )}
-          <button className="btn primary" type="submit" disabled={disabled}>
-            <Icon name={editingId ? 'check' : 'plus'} size={14} />
-            {editingId ? 'Save track' : 'Register track'}
+          <button
+            className="btn primary"
+            type="submit"
+            disabled={submitDisabled}
+            data-testid="music-upload-submit"
+          >
+            {uploading ? (
+              <>
+                <Spinner /> Uploading…
+              </>
+            ) : (
+              <>
+                <Icon name={isEdit ? 'check' : 'plus'} size={14} />
+                {isEdit ? 'Save track' : 'Upload track'}
+              </>
+            )}
           </button>
         </div>
       </form>
@@ -174,7 +302,7 @@ export function MusicLibrary({ tracks, loading, disabled, onCreate, onUpdate, on
                   <div className="music-row-title">{track.display_name}</div>
                   <div className="music-row-artist mono">{track.music_id}</div>
                 </td>
-                <td className="mono">{track.object_key}</td>
+                <td className="mono music-row-objectkey">{track.object_key}</td>
                 <td className="num">{formatDuration(track.duration_seconds)}</td>
                 <td>
                   {track.is_default ? (

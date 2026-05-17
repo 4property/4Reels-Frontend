@@ -1,9 +1,14 @@
-# AGENTS.md — Mapa de navegación para agentes de IA (`4reels front/`)
+# AGENTS.md — Mapa de navegación para agentes de IA (`/opt/projects/4Reels-Frontend`)
 
 > Este archivo es el **punto de entrada** para cualquier agente que
-> trabaje en el frontend de 4reels. NO es una biblia de reglas: es un
+> trabaje en el frontend de 4Reels. NO es una biblia de reglas: es un
 > **mapa**. Lee solo lo que necesites cuando lo necesites (divulgación
 > progresiva).
+>
+> **Repos en disco:**
+> - Frontend (este): `/opt/projects/4Reels-Frontend`
+> - Backend: `/opt/projects/4Reels-Backend` (corre en :8001 como test;
+>   producción legacy es otro repo en :8000 — ver §7).
 
 ---
 
@@ -123,3 +128,23 @@ Antes de terminar:
   inventes un workaround**: documenta el bloqueo en
   `progress/current.md` con estado `blocked` en `feature_list.json` y
   para la sesión.
+
+## 7. Backend al que apunta el frontend
+
+El frontend dev consume el backend en `VITE_MVP_API_URL`. Por defecto en
+este host:
+
+| Entorno          | URL                                              | Servicio backend           | Repo backend                      |
+|------------------|--------------------------------------------------|----------------------------|-----------------------------------|
+| Dev local / test | `http://localhost:8001` o `https://4reelsback-test.4property.com` | `reels-test.service` (:8001) | `/opt/projects/4Reels-Backend`    |
+| Producción       | `https://<dominio-prod>` → `:8000`               | `reels.service` (:8000)    | `/opt/reels` (otro repo, **legacy**) |
+
+**OJO:** producción y test corren **dos códigos fuente distintos** — el repo
+`/opt/reels` (branch `ghl` de `4property/4robert`) y el repo refactorizado
+`/opt/projects/4Reels-Backend` no son el mismo. Si validas un cambio de
+front contra :8001 y luego quieres llevarlo a producción, el lado backend
+del cambio (si lo hay) hay que portarlo manualmente.
+
+Para reiniciar los servicios backend, ver `/opt/projects/4Reels-Backend/AGENTS.md` §7.
+**Claude no debe reiniciar producción (`reels.service`) sin confirmación
+explícita del usuario en el mismo turno.**
