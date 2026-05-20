@@ -116,6 +116,29 @@ test.describe('feature 31 — subtitles tab cleanup + autoCaptions switch', () =
     expect(body.settings).toHaveProperty(['automation.autoCaptions'], false);
   });
 
+  test('font dropdown is fed by GET /v1/admin/fonts (Barlow visible)', async ({ page }) => {
+    // The Subtitles tab now reuses the Brand catalog (feature 28 follow-up):
+    // the hardcoded Söhne/Helvetica list is gone and `Barlow Semi Condensed`
+    // — added to the backend after feature 28 — must show up here too.
+    await seedAgencyLocalStorage(page);
+    await installMockBackend(page, {
+      agencies: [SAMPLE_AGENCY],
+      ghlSession: agencyConnectedSession(SAMPLE_AGENCY_ID),
+      defaultsByAgency: { [SAMPLE_AGENCY_ID]: defaultsRow(true) },
+    });
+
+    await page.goto('/defaults');
+    await page.getByRole('button', { name: /Subtitles/ }).click();
+
+    const select = page.locator('[data-testid="subtitles-font-select"]');
+    await expect(select).toBeEnabled();
+    const optionTexts = await select.locator('option').allTextContents();
+    expect(optionTexts).toContain('Barlow Semi Condensed');
+    expect(optionTexts).toContain('Inter');
+    expect(optionTexts.join('|')).not.toMatch(/Söhne/);
+    expect(optionTexts.join('|')).not.toMatch(/Helvetica/);
+  });
+
   test('reload re-hydrates the toggle to its persisted value', async ({ page }) => {
     await seedAgencyLocalStorage(page);
     await installMockBackend(page, {

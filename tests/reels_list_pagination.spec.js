@@ -79,13 +79,13 @@ test.describe('feature 32 — reels list pagination + filters', () => {
     await page.goto('/reels');
 
     await expect(page.getByRole('heading', { name: /Reels/ })).toBeVisible();
-    // Pagination summary present and matches default page_size=25.
+    // Pagination summary present and matches default page_size=10.
     await expect(
       page.getByTestId('reels-pagination-summary'),
-    ).toHaveText(/Showing 1–25 of 30/);
+    ).toHaveText(/Showing 1–10 of 30/);
     // Page-size selector exposes 10 / 25 / 50.
     const size = page.getByLabel('Rows per page');
-    await expect(size).toHaveValue('25');
+    await expect(size).toHaveValue('10');
     await expect(size.locator('option')).toHaveCount(3);
     // Workflow + publish filter dropdowns present.
     await expect(page.getByLabel('Filter by workflow state')).toBeVisible();
@@ -109,20 +109,20 @@ test.describe('feature 32 — reels list pagination + filters', () => {
 
     await page.goto('/reels');
     await expect(page.getByText('Property 1', { exact: true })).toBeVisible();
-    await expect(page.getByText('Property 26', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Property 11', { exact: true })).toHaveCount(0);
 
     await page.getByTestId('reels-pagination-next').click();
 
     await expect(page.getByTestId('reels-pagination-summary')).toHaveText(
-      /Showing 26–30 of 30/,
+      /Showing 11–20 of 30/,
     );
-    await expect(page.getByText('Property 26', { exact: true })).toBeVisible();
+    await expect(page.getByText('Property 11', { exact: true })).toBeVisible();
     await expect(page).toHaveURL(/[?&]page=2(\b|&|$)/);
 
     // The page 2 request actually carried page=2 in the query.
     const lastUrl = listRequests[listRequests.length - 1];
     expect(lastUrl.searchParams.get('page')).toBe('2');
-    expect(lastUrl.searchParams.get('page_size')).toBe('25');
+    expect(lastUrl.searchParams.get('page_size')).toBe('10');
   });
 
   test('workflow_state filter filters server-side and resets to page 1', async ({ page }) => {
@@ -131,12 +131,12 @@ test.describe('feature 32 — reels list pagination + filters', () => {
 
     await page.goto('/reels?page=2');
     await expect(page.getByTestId('reels-pagination-summary')).toHaveText(
-      /Showing 26–30 of 30/,
+      /Showing 11–20 of 30/,
     );
 
     await page.getByLabel('Filter by workflow state').selectOption('needs_approval');
 
-    // 7 items match → on default page size 25 we see them all on page 1.
+    // 7 items match → on default page size 10 we see them all on page 1.
     await expect(page.getByTestId('reels-pagination-summary')).toHaveText(
       /Showing 1–7 of 7/,
     );

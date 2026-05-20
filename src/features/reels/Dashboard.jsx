@@ -13,7 +13,7 @@ import './reels.css';
  * Feature 32 — paginated, filtered reel list.
  *
  * URL state (read on every render, written on every user input):
- *   ?page=2&page_size=25&workflow_state=needs_approval,approved
+ *   ?page=2&page_size=10&workflow_state=needs_approval,approved
  *   &publish_status=...&q=cranford
  *
  * The search input is debounced 300ms in local state before it lands in the
@@ -23,7 +23,7 @@ import './reels.css';
  */
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 const WORKFLOW_STATE_OPTIONS = [

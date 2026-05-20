@@ -139,15 +139,23 @@ export function useReel(siteId, sourcePropertyId) {
         // `subtitles_override` as either an array of
         //   `{index, text, in_seconds, out_seconds}`
         // or `null` when no override is set. The Subtitles panel seeds its
-        // editor from the override first, then falls back to the worker's
-        // last snapshot (`publish_target_snapshot.subtitles`) before reaching
-        // the in-app default seed.
+        // editor from the override first, then falls back to the auto-
+        // generated cues snapshot (feature 41) before reaching the in-app
+        // default seed.
         subtitlesOverride:
           Array.isArray(raw.subtitles_override) ? raw.subtitles_override : null,
+        // Feature 41: the back now exposes `publish_subtitles_snapshot` as a
+        // TOP-LEVEL field of `AgencyReelItemPayload`, persisted in the
+        // `reels.auto_subtitles_snapshot` column. It carries the Gemini-
+        // generated cues the worker produced (or last serialized) for this
+        // reel; the Subtitles panel uses it as the starting point for a new
+        // `subtitles_override` when the override column is null. Pre-41 the
+        // editor looked at `publish_target_snapshot.subtitles`, but that
+        // nested field was never populated end-to-end — keep this purely
+        // reading the new top-level field.
         publishSubtitlesSnapshot:
-          raw.publish_target_snapshot &&
-          Array.isArray(raw.publish_target_snapshot.subtitles)
-            ? raw.publish_target_snapshot.subtitles
+          Array.isArray(raw.publish_subtitles_snapshot)
+            ? raw.publish_subtitles_snapshot
             : null,
         // Feature 37: per-reel slides manifest override. The back surfaces
         // `manifest_override` as either an array of

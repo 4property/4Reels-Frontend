@@ -4,8 +4,8 @@ import { OutroCard } from '../OutroCard.jsx';
 
 export function IntroOutroTab({ state, set, defaults, agencyId, refetchDefaults }) {
   const {
-    introEnabled, introDuration,
-    outroEnabled, outroDuration,
+    introEnabled,
+    outroEnabled,
     skipForRentals,
   } = state;
 
@@ -14,8 +14,6 @@ export function IntroOutroTab({ state, set, defaults, agencyId, refetchDefaults 
       <IntroCard
         enabled={introEnabled}
         setEnabled={(v) => set({ introEnabled: v })}
-        duration={introDuration}
-        setDuration={(v) => set({ introDuration: v })}
         defaults={defaults}
         agencyId={agencyId}
         refetchDefaults={refetchDefaults}
@@ -23,8 +21,6 @@ export function IntroOutroTab({ state, set, defaults, agencyId, refetchDefaults 
       <OutroCard
         enabled={outroEnabled}
         setEnabled={(v) => set({ outroEnabled: v })}
-        duration={outroDuration}
-        setDuration={(v) => set({ outroDuration: v })}
         defaults={defaults}
         agencyId={agencyId}
         refetchDefaults={refetchDefaults}

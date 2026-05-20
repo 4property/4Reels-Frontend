@@ -80,14 +80,16 @@ export const INITIAL_DEFAULTS = {
   captionCase: 'sentence',
   emojiInCaptions: false,
 
-  // Intro / outro
+  // Intro / outro — the duration of the uploaded clip is read from the
+  // ffprobe-derived `{kind}_duration_seconds` field on the defaults blob, not
+  // from this state. The admin SaaS removed the client-side caps on size and
+  // duration in 2026-05; the UI no longer asks the operator for a target
+  // length.
   introEnabled: true,
   introSource: 'uploaded',
-  introDuration: 2.5,
   introFile: { name: 'agency-intro.mp4', size: '4.2 MB', duration: '0:02' },
   outroEnabled: true,
   outroSource: 'uploaded',
-  outroDuration: 3,
   outroFile: { name: 'agency-outro-cta.mp4', size: '5.8 MB', duration: '0:03' },
   skipForRentals: false,
 };

@@ -5,9 +5,6 @@ const OUTRO_COPY = {
   subtitle: 'Plays at the end of every reel. Great for CTAs and contact info.',
   previewTag: 'OUTRO',
   previewNoneLabel: 'No outro',
-  durationLabel: 'Outro duration',
-  durationHint:
-    'Trimmed from the start of the uploaded clip. Adds over the last frame of the reel.',
   chipFallbackName: 'outro',
   removeAria: 'Remove outro',
   deleteFallbackError: 'Failed to delete outro.',

@@ -311,12 +311,30 @@ What the real backend must implement:
     so the banner appears even before the first edit.
   - The reel inspector GET surfaces `subtitles_override` so the editor's
     Subtitles panel seeds the cue rows from the persisted override; when
-    null the panel falls back to `publish_target_snapshot.subtitles` (the
-    worker's last serialization) and finally to the in-app seed (so the
-    panel always has something to display).
+    null the panel falls back to `publish_subtitles_snapshot` (the
+    Gemini-generated cues persisted by feature 41 — see below) and
+    finally to the in-app seed (so the panel always has something to
+    display).
   - Save mode: auto-save on a 1 s debounce — every edit (text, in, out,
     add, delete) collapses with any pending change into a single PATCH.
     There is no explicit "Save" button.
+- **Auto-subtitles snapshot** (feature 41) — `publish_subtitles_snapshot`
+  is a TOP-LEVEL field of `AgencyReelItemPayload` (returned by
+  `GET /v1/admin/agencies/{id}/reels/{site_id}/{source_property_id}` and
+  each item of `GET .../reels`). It is the back's serialization of the
+  `reels.auto_subtitles_snapshot` column populated by the Gemini-based
+  auto-captions step in the render worker.
+  - Shape: `[{index:int, text:str, in_seconds:float, out_seconds:float},
+    ...]` or `null` when the worker hasn't produced cues yet.
+  - The editor's Subtitles panel uses it as the **starting point** for a
+    new `subtitles_override`: when the user opens a reel that has the
+    snapshot populated but no override yet, the cue rows are seeded from
+    the snapshot, and the first edit promotes them into a real override
+    via the PATCH above. Pre-41 the front read this from
+    `publish_target_snapshot.subtitles`, which was never populated; the
+    feature-41 wire change moves the data to its own top-level column so
+    the editor stops showing empty cue rows on reels that have only ever
+    been auto-captioned.
 - **Per-reel slides override** (feature 37) —
   `PATCH /v1/admin/agencies/{id}/reels/{site_id}/{source_property_id}/slides`.
   Same locked-banner / `Re-rendering…` badge primitives as photos and

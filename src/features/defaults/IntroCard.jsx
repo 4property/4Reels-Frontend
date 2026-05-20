@@ -5,8 +5,6 @@ const INTRO_COPY = {
   subtitle: 'Plays at the start of every reel.',
   previewTag: 'INTRO',
   previewNoneLabel: 'No intro',
-  durationLabel: 'Intro duration',
-  durationHint: 'Trimmed from the start of the uploaded clip.',
   chipFallbackName: 'intro',
   removeAria: 'Remove intro',
   deleteFallbackError: 'Failed to delete intro.',

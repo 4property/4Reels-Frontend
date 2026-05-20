@@ -1,6 +1,7 @@
 import { ColorInput } from '../../../shared/ColorInput.jsx';
 import { Segmented } from '../../../shared/Segmented.jsx';
 import { Toggle } from '../../../shared/Toggle.jsx';
+import { useAvailableFonts } from '../../brand/hooks.js';
 import { AUTOMATION_SETTINGS_KEYS } from '../initialState.js';
 
 const BG_STYLES = [
@@ -22,6 +23,10 @@ export function SubtitlesTab({ state, set }) {
   // interactive (pointer-events left alone) so an agency can still adjust
   // typography ahead of re-enabling captions.
   const subduedClass = autoCaptions ? '' : ' subtitles-tab-subdued';
+
+  // Font dropdown is fed by the global admin catalog (`GET /v1/admin/fonts`),
+  // same source the Brand tab uses — keeps both surfaces in sync.
+  const { items: fontItems, loading: fontsLoading } = useAvailableFonts();
 
   return (
     <>
@@ -47,9 +52,32 @@ export function SubtitlesTab({ state, set }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 12 }}>
             <div className="field">
               <div className="label">Font family</div>
-              <select className="select" value={subFont} onChange={(e) => set({ subFont: e.target.value })}>
-                <option>Inter</option><option>Söhne</option><option>Manrope</option>
-                <option>Plus Jakarta Sans</option><option>Helvetica</option><option>Montserrat</option>
+              {/* List served by GET /v1/admin/fonts (backend catalog), same
+                  source as the Brand tab — keeps both dropdowns in sync. */}
+              <select
+                className="select"
+                value={subFont}
+                onChange={(e) => set({ subFont: e.target.value })}
+                disabled={fontsLoading}
+                data-testid="subtitles-font-select"
+              >
+                {fontsLoading ? (
+                  <option value={subFont}>Loading fonts…</option>
+                ) : (
+                  <>
+                    {/* Legacy values retired in feature 28 stay rendered via
+                        this fallback so the saved selection is still visible,
+                        but can't be re-selected once changed. */}
+                    {subFont && !fontItems.some((f) => f.family === subFont) && (
+                      <option value={subFont}>{subFont}</option>
+                    )}
+                    {fontItems.map((font) => (
+                      <option key={font.family} value={font.family}>
+                        {font.display_name || font.family}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
             <div className="field">

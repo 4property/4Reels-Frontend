@@ -1236,6 +1236,10 @@ export async function installMockBackend(page, options = {}) {
       // Feature 37: surface `manifest_override` (slide list) and
       // `target_duration_seconds` (per-reel budget the panel uses to warn
       // when the slide sum exceeds it).
+      // Feature 41: surface `publish_subtitles_snapshot` at the TOP level
+      // (mirrors the backend's `AgencyReelItemPayload` after feature 41,
+      // backed by the `reels.auto_subtitles_snapshot` column). Tests can
+      // seed it via the reel record; defaults to `null` for backcompat.
       return route.fulfill(
         jsonResponse({
           reel: {
@@ -1245,6 +1249,7 @@ export async function installMockBackend(page, options = {}) {
             music: null,
             photos_override: null,
             subtitles_override: null,
+            publish_subtitles_snapshot: null,
             manifest_override: null,
             target_duration_seconds: 30,
             ...match,
@@ -2049,6 +2054,11 @@ const DEFAULT_ADMIN_FONT_CATALOG = [
   { family: 'Montserrat', display_name: 'Montserrat', available: true },
   { family: 'Poppins', display_name: 'Poppins', available: true },
   { family: 'Roboto', display_name: 'Roboto', available: true },
+  {
+    family: 'Barlow Semi Condensed',
+    display_name: 'Barlow Semi Condensed',
+    available: true,
+  },
 ];
 
 /**

@@ -44,7 +44,7 @@ test.describe('feature 28 — dynamic fonts + reset defaults', () => {
     const fontsResponse = await fontsResponsePromise;
     expect(fontsResponse.status()).toBe(200);
     const body = await fontsResponse.json();
-    expect(body.count).toBe(6);
+    expect(body.count).toBe(7);
     expect(body.items.map((f) => f.family)).toEqual([
       'Inter',
       'Manrope',
@@ -52,17 +52,20 @@ test.describe('feature 28 — dynamic fonts + reset defaults', () => {
       'Montserrat',
       'Poppins',
       'Roboto',
+      'Barlow Semi Condensed',
     ]);
 
     const select = page.locator('[data-testid="brand-font-select"]');
     await expect(select).toBeEnabled();
-    // 6 fonts from the catalog + 1 "Default" placeholder.
-    await expect(select.locator('option')).toHaveCount(7);
+    // 7 fonts from the catalog + 1 "Default" placeholder.
+    await expect(select.locator('option')).toHaveCount(8);
     await expect(select.locator('option').first()).toHaveText(
       /Default \(system fallback\)/,
     );
     await expect(select.locator('option').nth(1)).toHaveText('Inter');
-    await expect(select.locator('option').nth(6)).toHaveText('Roboto');
+    await expect(select.locator('option').nth(7)).toHaveText(
+      'Barlow Semi Condensed',
+    );
 
     // No 'Söhne' / 'Helvetica' anywhere — those were retired with feature 28.
     const allText = (await select.locator('option').allTextContents()).join('|');

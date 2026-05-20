@@ -13,9 +13,6 @@ import {
 
 const ACCEPTED_MIME = ['video/mp4', 'video/quicktime'];
 const ACCEPT_ATTR = '.mp4,.mov,video/mp4,video/quicktime';
-const MAX_BYTES = 50 * 1024 * 1024;
-const MAX_DURATION_S = 10;
-const MIN_DURATION_S = 1;
 
 /**
  * Feature 33 (outro) + feature 34 (intro) — shared card wired to the live
@@ -41,12 +38,16 @@ const MIN_DURATION_S = 1;
  *   - "Brand card"       disabled with tooltip "Coming soon"
  *   - "None"             enabled — clicking it dispatches DELETE /{kind}
  *
- * Client-side validation mirrors the server:
- *   - size ≤ 50 MB
- *   - mime ∈ {video/mp4, video/quicktime}
- *   - duration ∈ [1s, 10s], probed locally via `<video>` + loadedmetadata
- *     (injectable through `probeDurationSeconds` for tests, or via the
- *     `window.__4reelsProbe{Intro|Outro}Duration` hook).
+ * Client-side validation (the admin SaaS dropped all duration / size caps in
+ * 2026-05; the backend now accepts any length and any reasonable size, and
+ * the renderer reads the real ffprobe-derived duration). The card still:
+ *   - rejects mime ∉ {video/mp4, video/quicktime}
+ *   - probes duration locally via `<video>` + loadedmetadata so the file chip
+ *     can show the detected length immediately. The probe is injectable via
+ *     `probeDurationSeconds` (prop) or `window.__4reelsProbe{Intro|Outro}Duration`
+ *     for tests; a probe failure surfaces "Could not read video metadata"
+ *     but only when the probe rejects — a finite duration is no longer
+ *     compared against any bound.
  *
  * The "Enabled" toggle persists `{kind}_enabled` via the shared PUT /defaults
  * dispatched from the parent's "Save defaults" button — no PUT fires here.
@@ -56,8 +57,6 @@ export function UploadVideoCard({
   copy,
   enabled,
   setEnabled,
-  duration,
-  setDuration,
   defaults,
   agencyId,
   refetchDefaults,
@@ -127,10 +126,6 @@ export function UploadVideoCard({
       setError('Only MP4 or MOV');
       return;
     }
-    if (picked.size > MAX_BYTES) {
-      setError('File must be ≤50MB');
-      return;
-    }
 
     let durationS;
     try {
@@ -139,12 +134,8 @@ export function UploadVideoCard({
       setError('Could not read video metadata');
       return;
     }
-    if (
-      !Number.isFinite(durationS) ||
-      durationS > MAX_DURATION_S ||
-      durationS < MIN_DURATION_S
-    ) {
-      setError('Duration must be 1–10s');
+    if (!Number.isFinite(durationS)) {
+      setError('Could not read video metadata');
       return;
     }
 
@@ -286,7 +277,7 @@ export function UploadVideoCard({
                     <span className="t-accent t-medium">browse</span>
                   </div>
                   <div className="hint" style={{ marginTop: 4 }}>
-                    Max 10s · MP4 or MOV · 50 MB
+                    MP4 or MOV
                   </div>
                 </button>
               )}
@@ -307,20 +298,6 @@ export function UploadVideoCard({
                   {error}
                 </div>
               )}
-            </div>
-
-            <div className="field">
-              <div className="label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                {copy.durationLabel} <span className="mono">{Number(duration).toFixed(1)}s</span>
-              </div>
-              <input
-                type="range"
-                min="1" max={MAX_DURATION_S} step="0.5"
-                value={duration}
-                onChange={(e) => setDuration(+e.target.value)}
-                style={{ width: '100%' }}
-              />
-              <div className="hint">{copy.durationHint}</div>
             </div>
           </div>
         </div>
@@ -439,12 +416,6 @@ function humaniseUploadError(err) {
   const msg = err?.body?.error || err?.body?.message || err?.message;
   if (code === 'INVALID_MIME' || /INVALID_MIME/i.test(msg || '')) {
     return 'Only MP4 or MOV';
-  }
-  if (code === 'FILE_TOO_LARGE' || err?.status === 413) {
-    return 'File must be ≤50MB';
-  }
-  if (code === 'INVALID_DURATION' || /INVALID_DURATION/i.test(msg || '')) {
-    return 'Duration must be 1–10s';
   }
   return msg || 'Failed to upload.';
 }

@@ -13,9 +13,10 @@ import {
  * Covers the OutroCard wired into /defaults > Intro & outro:
  *   - upload MP4 → multipart POST, chip appears with duration + size, preview
  *     `<video>` points at the auth-protected file endpoint
- *   - oversized file → inline error, no network request
+ *   - long clip (>10s) now passes client-side validation (the SaaS removed
+ *     the duration cap in 2026-05; the backend trims server-side)
  *   - non-mp4/mov → inline error, no network request
- *   - duration probe failure → inline error blocks submit (no network request)
+ *   - duration probe failure (NaN) → inline error blocks submit
  *   - "Brand card" segmented option is disabled with tooltip "Coming soon"
  *   - trash → DELETE fires, chip disappears
  *   - toggle Enabled off + on preserves persisted chip metadata
@@ -23,7 +24,8 @@ import {
  * The duration probe is injected via `window.__4reelsProbeOutroDuration`
  * because Playwright cannot decode a synthetic MP4 buffer through a real
  * `<video>` element in headless Chromium. The injection is only a way to
- * deliver a known number to the same validation gate the real probe feeds.
+ * deliver a known number to the same metadata gate the real probe feeds;
+ * it is no longer compared against any 1–10s range.
  */
 
 const MP4_BYTES = Buffer.from(
@@ -41,6 +43,7 @@ async function gotoDefaultsWithOutroSetup(page, { probeSeconds = 5 } = {}) {
   await installMockBackend(page, {
     agencies: [SAMPLE_AGENCY],
     ghlSession: agencyConnectedSession(SAMPLE_AGENCY_ID),
+    outroDurationOverride: probeSeconds,
   });
   await page.addInitScript((duration) => {
     window.__4reelsProbeOutroDuration = () => Promise.resolve(duration);
@@ -93,9 +96,7 @@ test.describe('feature 33 — agency outro upload', () => {
     await expect(page.locator('[data-testid="outro-trash"]')).toBeVisible();
   });
 
-  test('client-side validation blocks oversized files without firing a request', async ({
-    page,
-  }) => {
+  test('oversized files pass client-side (no MAX_BYTES cap)', async ({ page }) => {
     await gotoDefaultsWithOutroSetup(page, { probeSeconds: 5 });
 
     let uploadCalls = 0;
@@ -105,25 +106,46 @@ test.describe('feature 33 — agency outro upload', () => {
       }
     });
 
-    // Playwright cannot ship a >50MB Buffer through `setInputFiles`, so the
-    // test fabricates a `File` whose `.size` is patched to 51 MB and dispatches
-    // a change event on the hidden input — same code path the picker uses,
-    // without ever allocating the bytes.
+    // Patch `.size` to 100 MB so we don't have to ship the bytes; the
+    // expectation is the upstream POST now fires — the SaaS removed the
+    // 50 MB client cap in 2026-05.
     await page.evaluate(() => {
       const input = document.querySelector('[data-testid="outro-input"]');
       const tiny = new Uint8Array([0, 0, 0, 0]);
-      const file = new File([tiny], 'huge.mp4', { type: 'video/mp4' });
-      Object.defineProperty(file, 'size', { value: 51 * 1024 * 1024 });
+      const file = new File([tiny], 'big.mp4', { type: 'video/mp4' });
+      Object.defineProperty(file, 'size', { value: 100 * 1024 * 1024 });
       const dt = new DataTransfer();
       dt.items.add(file);
       input.files = dt.files;
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    await expect(page.locator('[data-testid="outro-error"]')).toContainText(
-      /50MB/,
-    );
-    expect(uploadCalls).toBe(0);
+    await expect(page.locator('[data-testid="outro-file-chip"]')).toBeVisible();
+    await expect(page.locator('[data-testid="outro-error"]')).toHaveCount(0);
+    await expect.poll(() => uploadCalls).toBe(1);
+  });
+
+  test('long clips (>10s) pass client-side validation', async ({ page }) => {
+    // 30s — used to trip the 1–10s cap; now it should sail through.
+    await gotoDefaultsWithOutroSetup(page, { probeSeconds: 30 });
+
+    let uploadCalls = 0;
+    page.on('request', (request) => {
+      if (request.url().endsWith(OUTRO_UPLOAD_URL) && request.method() === 'POST') {
+        uploadCalls += 1;
+      }
+    });
+
+    await page.locator('[data-testid="outro-input"]').setInputFiles({
+      name: 'long.mp4',
+      mimeType: 'video/mp4',
+      buffer: MP4_BYTES,
+    });
+
+    await expect(page.locator('[data-testid="outro-file-chip"]')).toBeVisible();
+    await expect(page.locator('[data-testid="outro-error"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="outro-file-meta"]')).toContainText('30');
+    await expect.poll(() => uploadCalls).toBe(1);
   });
 
   test('rejects non-mp4/mov files client-side', async ({ page }) => {
@@ -149,7 +171,21 @@ test.describe('feature 33 — agency outro upload', () => {
   });
 
   test('duration probe failure blocks submit', async ({ page }) => {
-    await gotoDefaultsWithOutroSetup(page, { probeSeconds: 12 });
+    // The probe rejects (simulating an unreadable container) — the chip
+    // should not appear and no upload request should fire.
+    await seedAgencyLocalStorage(page);
+    await installMockBackend(page, {
+      agencies: [SAMPLE_AGENCY],
+      ghlSession: agencyConnectedSession(SAMPLE_AGENCY_ID),
+    });
+    await page.addInitScript(() => {
+      window.__4reelsProbeOutroDuration = () =>
+        Promise.reject(new Error('metadata'));
+    });
+    await page.goto('/defaults');
+    await expect(page.getByRole('heading', { name: 'Defaults' })).toBeVisible();
+    await page.getByRole('button', { name: /Intro & outro/i }).click();
+    await expect(page.locator('[data-testid="outro-card"]')).toBeVisible();
 
     let uploadCalls = 0;
     page.on('request', (request) => {
@@ -159,13 +195,13 @@ test.describe('feature 33 — agency outro upload', () => {
     });
 
     await page.locator('[data-testid="outro-input"]').setInputFiles({
-      name: 'long.mp4',
+      name: 'broken.mp4',
       mimeType: 'video/mp4',
       buffer: MP4_BYTES,
     });
 
     await expect(page.locator('[data-testid="outro-error"]')).toContainText(
-      /1.{1,3}10s/,
+      /metadata/i,
     );
     expect(uploadCalls).toBe(0);
   });
