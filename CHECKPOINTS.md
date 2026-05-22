@@ -1,71 +1,70 @@
-# CHECKPOINTS — Evaluación del estado final (`4reels front/`)
+# CHECKPOINTS — Final-state evaluation (`4reels front/`)
 
-> En sistemas multi-agente no se evalúa el camino, se evalúa el destino.
-> Estos son los checkpoints objetivos que un juez (humano o IA) puede
-> usar para decidir si el frontend está sano tras una sesión.
+> In multi-agent systems we don't evaluate the path, we evaluate the
+> destination. These are the objective checkpoints a judge (human or AI)
+> can use to decide whether the frontend is healthy after a session.
 
-## C1 — El arnés está completo
+## C1 — The harness is complete
 
-- [ ] Existen los archivos base: `AGENTS.md`, `CLAUDE.md`, `init.sh`,
+- [ ] The base files exist: `AGENTS.md`, `CLAUDE.md`, `init.sh`,
       `feature_list.json`, `progress/current.md`.
-- [ ] Existen los 3 docs: `docs/architecture.md`, `docs/conventions.md`,
+- [ ] The 3 docs exist: `docs/architecture.md`, `docs/conventions.md`,
       `docs/verification.md`.
-- [ ] `./init.sh` termina con exit code 0.
+- [ ] `./init.sh` ends with exit code 0.
 
-## C2 — El estado es coherente
+## C2 — State is coherent
 
-- [ ] Como mucho una feature en `in_progress` en `feature_list.json`.
-- [ ] Toda feature `done` tiene tests E2E o de smoke asociados que
-      pasan.
-- [ ] `progress/current.md` está vacío o describe la sesión activa.
-- [ ] `progress/history.md` tiene una entrada por la última sesión
-      cerrada.
+- [ ] At most one feature in `in_progress` in `feature_list.json`.
+- [ ] Every `done` feature has associated E2E or smoke tests that
+      pass.
+- [ ] `progress/current.md` is empty or describes the active session.
+- [ ] `progress/history.md` has an entry for the last closed
+      session.
 
-## C3 — El código respeta la arquitectura
+## C3 — The code respects the architecture
 
-- [ ] **Sin TypeScript** (`*.ts`, `*.tsx`) en `src/`.
-- [ ] **Sin React Query, sin MSW**, sin nuevas libs de state.
-- [ ] **Vanilla CSS** — sin styled-components ni Tailwind ni CSS-in-JS.
-- [ ] Ningún componente bajo `src/features/` o `src/shared/` llama
-      `fetch(...)` directamente. Todo pasa por
-      `lib/api/client.js` vía un hook de feature.
-- [ ] `src/shared/` no importa de `src/features/` ni de `src/lib/api/`.
-- [ ] `src/lib/` no importa de `src/features/`, `src/app/`, `src/shared/`.
-- [ ] `src/app/` no contiene lógica de dominio (solo providers + shell).
+- [ ] **No TypeScript** (`*.ts`, `*.tsx`) in `src/`.
+- [ ] **No React Query, no MSW**, no new state libs.
+- [ ] **Vanilla CSS** — no styled-components, no Tailwind, no CSS-in-JS.
+- [ ] No component under `src/features/` or `src/shared/` calls
+      `fetch(...)` directly. Everything goes through
+      `lib/api/client.js` via a feature hook.
+- [ ] `src/shared/` does not import from `src/features/` or `src/lib/api/`.
+- [ ] `src/lib/` does not import from `src/features/`, `src/app/`, `src/shared/`.
+- [ ] `src/app/` contains no domain logic (only providers + shell).
 
-## C4 — La verificación es real
+## C4 — Verification is real
 
-- [ ] `npm run lint` termina verde.
-- [ ] `npm run build` termina verde.
-- [ ] Si la feature toca UI: hay test Playwright (smoke o e2e) que
-      cubre el flujo principal.
-- [ ] `npm run test:smoke` termina verde sobre los flujos tocados.
-- [ ] Si la feature toca el "look": hay snapshot visual (`test:visual`)
-      actualizado y aceptado.
+- [ ] `npm run lint` finishes green.
+- [ ] `npm run build` finishes green.
+- [ ] If the feature touches UI: there is a Playwright test (smoke or e2e)
+      covering the main flow.
+- [ ] `npm run test:smoke` finishes green over the touched flows.
+- [ ] If the feature touches the "look": there is an updated and
+      accepted visual snapshot (`test:visual`).
 
-## C5 — El contrato mock-backend está vivo
+## C5 — The mock-backend contract is alive
 
-- [ ] Si la feature añade un endpoint nuevo: existe su handler en
-      `src/lib/api/mock/handlers/<feature>.js` y está registrado.
-- [ ] El shape del mock matchea el shape esperado del backend real
-      (ver `DOCS.md` § "Backend contract"); cualquier diferencia se
-      documenta como TODO en el handler.
-- [ ] `tests/support/mock-backend.js` cubre los nuevos endpoints
-      cuando los tests E2E los necesitan.
+- [ ] If the feature adds a new endpoint: its handler exists in
+      `src/lib/api/mock/handlers/<feature>.js` and is registered.
+- [ ] The mock shape matches the expected shape of the real backend
+      (see `DOCS.md` § "Backend contract"); any difference is
+      documented as a TODO in the handler.
+- [ ] `tests/support/mock-backend.js` covers the new endpoints
+      when the E2E tests need them.
 
-## C6 — La sesión se cerró bien
+## C6 — The session was closed properly
 
-- [ ] No hay archivos sin trackear sospechosos (`.tmp_vite_*.log`,
-      `dist/` modificado a mano, `node_modules/` parcheado).
-- [ ] No hay `console.log` ni `debugger` en el código de
-      `src/`.
-- [ ] La última feature trabajada está reflejada en su estado correcto
-      en `feature_list.json`.
-- [ ] No se han añadido dependencias en `package.json` sin justificación
-      en el informe del implementer.
+- [ ] No suspicious untracked files (`.tmp_vite_*.log`,
+      `dist/` modified by hand, patched `node_modules/`).
+- [ ] No `console.log` or `debugger` in `src/` code.
+- [ ] The last feature worked on is reflected in its correct status
+      in `feature_list.json`.
+- [ ] No dependencies have been added to `package.json` without
+      justification in the implementer's report.
 
 ---
 
-**Cómo usar este archivo:** un agente revisor (`.claude/agents/reviewer.md`)
-recorre cada checkbox, marca `[x]` o `[ ]`, y rechaza el cierre de
-sesión si quedan boxes vacíos en C1-C6.
+**How to use this file:** a reviewer agent (`.claude/agents/reviewer.md`)
+walks through each checkbox, marks `[x]` or `[ ]`, and rejects the
+session closure if any boxes remain empty in C1-C6.

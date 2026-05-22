@@ -1,20 +1,20 @@
-# Arquitectura — Qué significa "hacer un buen trabajo" (`4reels front/`)
+# Architecture — What "doing a good job" means (`4reels front/`)
 
-> Este documento es un **resumen operativo** para el agente. La fuente
-> de verdad son [`ARCHITECTURE.md`](../ARCHITECTURE.md) y
-> [`DOCS.md`](../DOCS.md) en la raíz del proyecto. Si hay conflicto,
-> ganan ellos.
+> This document is an **operational summary** for the agent. The source
+> of truth is [`ARCHITECTURE.md`](../ARCHITECTURE.md) and
+> [`DOCS.md`](../DOCS.md) at the project root. If there is a conflict,
+> those win.
 
 ## Stack
 
 - **React 18 + Vite.**
-- **JS/JSX vanilla** — sin TypeScript.
-- **Vanilla CSS** — sin styled-components, sin Tailwind, sin CSS-in-JS.
-- **Sin React Query.** Server state vía `useApi` / `useMutation` de
+- **Vanilla JS/JSX** — no TypeScript.
+- **Vanilla CSS** — no styled-components, no Tailwind, no CSS-in-JS.
+- **No React Query.** Server state via `useApi` / `useMutation` from
   `lib/hooks/`.
-- **Sin MSW.** Mock implementado a mano en `src/lib/api/mock/`. Para
-  tests E2E, mock vía `tests/support/mock-backend.js`.
-- **Routing**: `react-router-dom` v6 (sí permitido).
+- **No MSW.** Mock implemented by hand in `src/lib/api/mock/`. For
+  E2E tests, mock via `tests/support/mock-backend.js`.
+- **Routing**: `react-router-dom` v6 (yes, allowed).
 - **Tests**: Playwright (smoke / e2e / visual).
 - **Lint**: ESLint flat config (`eslint.config.js`).
 
@@ -27,16 +27,16 @@ src/
 │   ├── Shell.jsx
 │   ├── pages.js
 │   └── providers/           ThemeProvider, TenantProvider
-├── lib/                     Capa base
+├── lib/                     Base layer
 │   ├── api/
-│   │   ├── client.js        Único punto que hace fetch real o llama al mock
+│   │   ├── client.js        Single point that does real fetch or calls the mock
 │   │   └── mock/            Mock backend (handlers + store)
-│   │       ├── store.js     Datos en memoria
-│   │       └── handlers/    Un archivo por dominio
+│   │       ├── store.js     In-memory data
+│   │       └── handlers/    One file per domain
 │   └── hooks/               useApi, useMutation, useLocalStorage
 ├── shared/                  UI primitives (Icon, Cover, Toggle, …)
-├── features/                Una carpeta por dominio
-│   ├── reels/               api.js, hooks.js, componentes, index.js
+├── features/                One folder per domain
+│   ├── reels/               api.js, hooks.js, components, index.js
 │   ├── music/
 │   ├── social/
 │   ├── brand/
@@ -44,7 +44,7 @@ src/
 │   ├── automation/
 │   ├── admin/
 │   └── notifications/
-└── styles/                  Vanilla CSS, un archivo por responsabilidad
+└── styles/                  Vanilla CSS, one file per responsibility
 ```
 
 ## Data flow
@@ -56,63 +56,62 @@ Component → feature hook → feature api → lib/api/client.js
                                   VITE_USE_MOCK=false → fetch(VITE_API_URL)
 ```
 
-**Componentes nunca llaman `fetch` directamente.** Siempre vía hook de
-feature.
+**Components never call `fetch` directly.** Always via a feature hook.
 
 ## Layer rules
 
-- `shared/` — pura presentación, sin deps de datos. No importa de
-  `features/`, `lib/api/` ni `app/providers/`.
-- `features/<x>/` — puede importar de `shared/`, `lib/`,
+- `shared/` — pure presentation, no data deps. Does not import from
+  `features/`, `lib/api/` or `app/providers/`.
+- `features/<x>/` — may import from `shared/`, `lib/`,
   `app/providers/`.
-- `app/` — providers + shell. No contiene lógica de dominio.
-- `lib/` — base. No importa nada de arriba (`features/`, `app/`,
+- `app/` — providers + shell. Contains no domain logic.
+- `lib/` — base. Imports nothing from above (`features/`, `app/`,
   `shared/`).
 
 ## State
 
-- **Server state**: `useApi` (lectura) / `useMutation` (escritura) de
+- **Server state**: `useApi` (read) / `useMutation` (write) from
   `lib/hooks/`.
-- **Global UI**: `ThemeProvider`, `TenantProvider` en `app/providers/`.
-  Solo concerns transversales reales — no metas state de feature aquí.
-- **Local UI**: `useState`. Por defecto.
-- **Persistencia**: `useLocalStorage` (theme, current tab).
+- **Global UI**: `ThemeProvider`, `TenantProvider` in `app/providers/`.
+  Only genuine cross-cutting concerns — don't put feature state here.
+- **Local UI**: `useState`. By default.
+- **Persistence**: `useLocalStorage` (theme, current tab).
 
 ## Mock = Spec
 
-`src/lib/api/mock/` es la **especificación** del backend real. Cuando
-añadas un endpoint:
+`src/lib/api/mock/` is the **specification** of the real backend. When
+you add an endpoint:
 
-1. Define el shape exacto en el handler del mock.
-2. Documenta el contrato en `DOCS.md` § "Backend contract" si es nuevo.
-3. El backend (4reels back) lo implementa con el mismo path y el mismo
-   shape. Si descubres un mismatch, **cambia el mock** y avisa al
-   leader; no hagas que el frontend "se adapte" al backend.
+1. Define the exact shape in the mock handler.
+2. Document the contract in `DOCS.md` § "Backend contract" if it is new.
+3. The backend (4reels back) implements it with the same path and the
+   same shape. If you find a mismatch, **change the mock** and tell the
+   leader; do not make the frontend "adapt" to the backend.
 
-## Cómo añadir una feature
+## How to add a feature
 
-(Eco de `ARCHITECTURE.md` § "Adding a feature".)
+(Echo of `ARCHITECTURE.md` § "Adding a feature".)
 
-1. Crea `src/features/<name>/` con `api.js`, `hooks.js`, componentes,
+1. Create `src/features/<name>/` with `api.js`, `hooks.js`, components,
    `index.js`.
-2. Añade un handler en `src/lib/api/mock/handlers/<name>.js` y
-   regístralo en el index del mock.
-3. Si la feature es navegable: añade la pestaña en `src/app/pages.js`
-   y engánchala en `src/app/Shell.jsx`.
-4. Crea `src/styles/<name>.css` y vincúlalo desde el componente raíz
-   de la feature.
-5. Añade test smoke en `tests/` cubriendo el flujo principal.
+2. Add a handler in `src/lib/api/mock/handlers/<name>.js` and
+   register it in the mock index.
+3. If the feature is navigable: add the tab in `src/app/pages.js`
+   and wire it up in `src/app/Shell.jsx`.
+4. Create `src/styles/<name>.css` and link it from the feature's root
+   component.
+5. Add a smoke test in `tests/` covering the main flow.
 
-## Qué NO hacer
+## What NOT to do
 
-- ❌ Importar `fetch` o `XMLHttpRequest` desde un componente.
-- ❌ Añadir TypeScript, React Query, MSW, styled-components, Tailwind,
-  Redux, Zustand, Recoil, Jotai, … sin pasar por el leader.
-- ❌ Que `shared/` importe de `features/` o `lib/api/`.
-- ❌ Que `lib/` importe de `features/`, `app/` o `shared/`.
-- ❌ CSS inline o `<style>` tags inline (excepto demos triviales en
-  Storybook si llegara). Vanilla CSS por archivo, importado por la
-  feature.
-- ❌ Mover lógica de feature a `app/` "para tenerla global".
-- ❌ Crear hooks genéricos que vivan dentro de una feature; los
-  genéricos viven en `lib/hooks/`.
+- ❌ Import `fetch` or `XMLHttpRequest` from a component.
+- ❌ Add TypeScript, React Query, MSW, styled-components, Tailwind,
+  Redux, Zustand, Recoil, Jotai, … without going through the leader.
+- ❌ Letting `shared/` import from `features/` or `lib/api/`.
+- ❌ Letting `lib/` import from `features/`, `app/` or `shared/`.
+- ❌ Inline CSS or inline `<style>` tags (except trivial demos in
+  Storybook if it ever arrives). Vanilla CSS per file, imported by
+  the feature.
+- ❌ Moving feature logic to `app/` "to keep it global".
+- ❌ Creating generic hooks that live inside a feature; generic ones
+  live in `lib/hooks/`.

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# init.sh — Verificación e inicialización del entorno (4reels front)
+# init.sh — Environment verification and initialization (4reels front)
 #
-# Este script lo ejecuta el agente al COMENZAR una sesión y antes de
-# declarar cualquier tarea como `done`. Si falla, la sesión no debe avanzar.
+# The agent runs this script at the START of a session and before
+# declaring any task as `done`. If it fails, the session must not advance.
 #
-# Tests E2E (Playwright) NO se corren aquí por coste — los lanza el
-# agente explícitamente cuando una feature lo requiere.
+# E2E tests (Playwright) are NOT run here for cost reasons — the agent
+# launches them explicitly when a feature requires it.
 
 set -u
 RED='\033[0;31m'
@@ -19,10 +19,10 @@ fail()  { printf "${RED}[FAIL]${NC}  %s\n" "$1"; }
 
 EXIT_CODE=0
 
-echo "── 1. Verificando entorno ─────────────────────────────"
+echo "── 1. Verifying environment ───────────────────────────"
 
 if ! command -v node >/dev/null 2>&1; then
-  fail "node no está instalado"
+  fail "node is not installed"
   exit 1
 fi
 NODE_VERSION=$(node --version)
@@ -30,38 +30,38 @@ ok "node $NODE_VERSION"
 
 NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]")
 if [ "$NODE_MAJOR" -lt 18 ]; then
-  fail "Se requiere Node >= 18 (tienes $NODE_VERSION)"
+  fail "Node >= 18 is required (you have $NODE_VERSION)"
   EXIT_CODE=1
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
-  fail "npm no está instalado"
+  fail "npm is not installed"
   EXIT_CODE=1
 else
   ok "npm $(npm --version)"
 fi
 
 if [ ! -d "node_modules" ]; then
-  fail "node_modules/ no existe — ejecuta 'npm install'"
+  fail "node_modules/ does not exist — run 'npm install'"
   EXIT_CODE=1
 else
-  ok "node_modules/ presente"
+  ok "node_modules/ present"
 fi
 
 echo ""
-echo "── 2. Verificando archivos base del arnés ──────────────"
+echo "── 2. Verifying harness base files ────────────────────"
 
 for f in AGENTS.md CLAUDE.md feature_list.json progress/current.md docs/architecture.md docs/conventions.md docs/verification.md CHECKPOINTS.md; do
   if [ ! -f "$f" ]; then
-    fail "Falta archivo base: $f"
+    fail "Missing base file: $f"
     EXIT_CODE=1
   else
-    ok "Existe $f"
+    ok "Exists $f"
   fi
 done
 
 echo ""
-echo "── 3. Validando feature_list.json ──────────────────────"
+echo "── 3. Validating feature_list.json ────────────────────"
 
 node -e '
 const fs = require("fs");
@@ -70,76 +70,76 @@ try {
   const valid = new Set(["pending", "in_progress", "done", "blocked"]);
   const inProgress = data.features.filter(f => f.status === "in_progress");
   if (inProgress.length > 1) {
-    console.log(`[FAIL]  Hay ${inProgress.length} features en in_progress (máximo 1)`);
+    console.log(`[FAIL]  There are ${inProgress.length} features in in_progress (maximum 1)`);
     process.exit(1);
   }
   for (const f of data.features) {
     if (!valid.has(f.status)) {
-      console.log(`[FAIL]  Estado inválido en feature ${f.id}: ${f.status}`);
+      console.log(`[FAIL]  Invalid status in feature ${f.id}: ${f.status}`);
       process.exit(1);
     }
   }
-  console.log(`[OK]    feature_list.json válido (${data.features.length} features)`);
+  console.log(`[OK]    feature_list.json valid (${data.features.length} features)`);
 } catch (e) {
-  console.log(`[FAIL]  feature_list.json inválido: ${e.message}`);
+  console.log(`[FAIL]  feature_list.json invalid: ${e.message}`);
   process.exit(1);
 }
 '
 if [ $? -ne 0 ]; then EXIT_CODE=1; fi
 
 echo ""
-echo "── 4. Verificando que no hay TypeScript filtrado ───────"
+echo "── 4. Verifying no leaked TypeScript ──────────────────"
 
 TS_FILES=$(find src -type f \( -name "*.ts" -o -name "*.tsx" \) 2>/dev/null | wc -l)
 if [ "$TS_FILES" -gt 0 ]; then
-  fail "Hay $TS_FILES archivo(s) TypeScript en src/ (prohibido)"
+  fail "There are $TS_FILES TypeScript file(s) in src/ (forbidden)"
   EXIT_CODE=1
 else
-  ok "Sin TypeScript en src/"
+  ok "No TypeScript in src/"
 fi
 
-# Detectar libs prohibidas en package.json
+# Detect forbidden libs in package.json
 node -e '
 const pkg = require("./package.json");
 const deps = {...pkg.dependencies, ...pkg.devDependencies};
 const banned = ["@tanstack/react-query", "react-query", "msw", "styled-components", "@emotion/react", "@emotion/styled", "tailwindcss", "typescript"];
 const found = banned.filter(b => deps[b]);
 if (found.length) {
-  console.log(`[FAIL]  Dependencias prohibidas: ${found.join(", ")}`);
+  console.log(`[FAIL]  Forbidden dependencies: ${found.join(", ")}`);
   process.exit(1);
 }
-console.log("[OK]    package.json sin libs prohibidas");
+console.log("[OK]    package.json has no forbidden libs");
 ' || EXIT_CODE=1
 
 echo ""
-echo "── 5. Lint ─────────────────────────────────────────────"
+echo "── 5. Lint ────────────────────────────────────────────"
 
 if npm run lint --silent 2>&1 | tail -5; then
-  ok "lint verde"
+  ok "lint green"
 else
-  fail "lint rompe"
+  fail "lint broken"
   EXIT_CODE=1
 fi
 
 echo ""
-echo "── 6. Build ────────────────────────────────────────────"
+echo "── 6. Build ───────────────────────────────────────────"
 
 if npm run build --silent > /tmp/harness_build.log 2>&1; then
-  ok "build verde"
+  ok "build green"
 else
-  fail "build rompe — revisa /tmp/harness_build.log"
+  fail "build broken — check /tmp/harness_build.log"
   tail -20 /tmp/harness_build.log
   EXIT_CODE=1
 fi
 
 echo ""
-echo "── 7. Resumen ──────────────────────────────────────────"
+echo "── 7. Summary ─────────────────────────────────────────"
 
 if [ $EXIT_CODE -eq 0 ]; then
-  ok "Entorno listo. Puedes empezar a trabajar."
-  echo "      Tests E2E no corridos — lanza 'npm run test:smoke' o 'npm run test:e2e' según la feature."
+  ok "Environment ready. You can start working."
+  echo "      E2E tests not run — launch 'npm run test:smoke' or 'npm run test:e2e' as the feature requires."
 else
-  fail "Entorno NO está listo. Resuelve los errores antes de avanzar."
+  fail "Environment is NOT ready. Resolve the errors before continuing."
 fi
 
 exit $EXIT_CODE

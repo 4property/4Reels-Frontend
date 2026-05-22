@@ -1,46 +1,46 @@
-# Convenciones de código (`4reels front/`)
+# Code conventions (`4reels front/`)
 
-> Homogeneidad extrema. La IA predice mejor cuando el repositorio se
-> parece a sí mismo en todas partes.
+> Extreme homogeneity. The AI predicts better when the repository
+> looks like itself everywhere.
 
-## Estilo JS / JSX
+## JS / JSX style
 
-- **JS/JSX vanilla** — nunca TypeScript.
-- **ESM**. Imports `import x from "./y.js"` (con extensión cuando ESM
-  lo requiera), `export default` o `export const`. Nada de `require`.
-- **Comillas dobles** `"..."` por defecto. Comillas simples solo para
-  escapar dobles dentro.
-- **Punto y coma** al final de cada statement (consistencia con el
-  código existente; ESLint lo aplica).
-- **Líneas máximo 100 caracteres.**
-- **Arrow functions** para componentes funcionales y handlers.
-- **Hooks**: respetan las reglas de React (`react-hooks/rules-of-hooks`)
-  — siempre top-level, nunca condicionales.
+- **Vanilla JS/JSX** — never TypeScript.
+- **ESM**. Imports `import x from "./y.js"` (with the extension when
+  ESM requires it), `export default` or `export const`. No `require`.
+- **Double quotes** `"..."` by default. Single quotes only to escape
+  doubles inside.
+- **Semicolons** at the end of every statement (consistency with the
+  existing code; ESLint enforces it).
+- **Lines max 100 characters.**
+- **Arrow functions** for functional components and handlers.
+- **Hooks**: respect the React rules (`react-hooks/rules-of-hooks`)
+  — always top-level, never conditional.
 
-## Nombres
+## Names
 
-| Tipo                          | Convención        | Ejemplo                  |
+| Type                          | Convention        | Example                  |
 |-------------------------------|-------------------|--------------------------|
-| Componentes (archivo + export) | `PascalCase.jsx` | `ReelCard.jsx`           |
-| Hooks                         | `useCamelCase.js` | `useReels.js`           |
-| Otros módulos                 | `camelCase.js`    | `formatDuration.js`      |
+| Components (file + export)    | `PascalCase.jsx`  | `ReelCard.jsx`           |
+| Hooks                         | `useCamelCase.js` | `useReels.js`            |
+| Other modules                 | `camelCase.js`    | `formatDuration.js`      |
 | CSS                           | `kebab-case.css`  | `reel-card.css`          |
-| Carpetas de feature           | `kebab-case/`     | `features/reels/`        |
-| Constantes top-level          | `UPPER_SNAKE`     | `DEFAULT_PAGE_SIZE`      |
-| Estado de useState            | `camelCase` + setter `setX` | `[isOpen, setIsOpen]` |
+| Feature folders               | `kebab-case/`     | `features/reels/`        |
+| Top-level constants           | `UPPER_SNAKE`     | `DEFAULT_PAGE_SIZE`      |
+| useState state                | `camelCase` + setter `setX` | `[isOpen, setIsOpen]` |
 
-## Estructura de un feature folder
+## Feature folder structure
 
 ```
 src/features/<name>/
-├── api.js              Funciones que llaman a lib/api/client.js
-├── hooks.js            Hooks que envuelven api.js con useApi/useMutation
-├── <Component>.jsx     Componentes específicos de la feature
+├── api.js              Functions that call lib/api/client.js
+├── hooks.js            Hooks that wrap api.js with useApi/useMutation
+├── <Component>.jsx     Feature-specific components
 ├── ...
-└── index.js            Barrel: re-exporta lo público de la feature
+└── index.js            Barrel: re-exports the feature's public surface
 ```
 
-Ejemplo de `api.js`:
+Example `api.js`:
 
 ```js
 import { apiRequest } from "../../lib/api/client.js";
@@ -52,7 +52,7 @@ export const updateReel = (id, patch) =>
   apiRequest(`/v1/reels/${id}`, { method: "PATCH", body: patch });
 ```
 
-Ejemplo de `hooks.js`:
+Example `hooks.js`:
 
 ```js
 import { useApi, useMutation } from "../../lib/hooks";
@@ -63,14 +63,14 @@ export const useReels = (filters) => useApi(["reels", filters], () => fetchReels
 export const useUpdateReel = () => useMutation(updateReel);
 ```
 
-## Componentes
+## Components
 
 ```jsx
 import "../../styles/reel-card.css";
 
 export const ReelCard = ({ reel, onPublish }) => {
   // local UI state via useState
-  // server state vía hooks de la feature, NUNCA fetch directo
+  // server state via feature hooks, NEVER direct fetch
   return (
     <article className="reel-card">
       {/* … */}
@@ -79,20 +79,20 @@ export const ReelCard = ({ reel, onPublish }) => {
 };
 ```
 
-- Un componente por archivo (con sus subcomponentes triviales como
-  helpers internos).
-- Props desestructuradas en la firma.
-- `className` en kebab-case que matchea el archivo CSS.
-- Nada de `style={{ ... }}` salvo cuando un valor es genuinamente
-  dinámico (anchura de progress bar, color custom de tenant).
+- One component per file (with its trivial subcomponents as internal
+  helpers).
+- Destructured props in the signature.
+- `className` in kebab-case matching the CSS file.
+- No `style={{ ... }}` unless a value is genuinely dynamic (progress
+  bar width, custom tenant color).
 
 ## CSS
 
-- Un archivo por feature o por primitive bajo `src/styles/`.
-- BEM ligero: `.reel-card`, `.reel-card__title`, `.reel-card--published`.
-- Variables en `:root` (color tokens, spacing) — no las redefinas
-  dentro de una feature.
-- Mobile-first. Media queries al final del archivo.
+- One file per feature or per primitive under `src/styles/`.
+- Light BEM: `.reel-card`, `.reel-card__title`, `.reel-card--published`.
+- Variables in `:root` (color tokens, spacing) — do not redefine
+  them inside a feature.
+- Mobile-first. Media queries at the end of the file.
 
 ## Mock backend
 
@@ -104,35 +104,35 @@ export const reelsHandlers = {
 };
 ```
 
-- Path-pattern → función. La función accede al `store` mutable.
-- El shape de la respuesta es **exactamente** el que tendrá el backend
-  real.
-- Si el handler devuelve algo que el backend real no podrá devolver,
-  márcalo con `// TODO mock-only:` y abre nota en `progress/current.md`.
+- Path-pattern → function. The function accesses the mutable `store`.
+- The response shape is **exactly** what the real backend will have.
+- If the handler returns something the real backend will not be able
+  to return, mark it with `// TODO mock-only:` and open a note in
+  `progress/current.md`.
 
-## Tests Playwright
+## Playwright tests
 
-- Smoke: un test por flujo crítico (login + 3 acciones), rápido.
-- E2E: cubre permutaciones (filters, edge cases).
-- Visual: snapshots de pantallas estables. Aceptación manual con
+- Smoke: one test per critical flow (login + 3 actions), fast.
+- E2E: cover permutations (filters, edge cases).
+- Visual: snapshots of stable screens. Manual acceptance with
   `npm run test:visual:update`.
-- Selectores: prefiere `getByRole`, `getByLabel`, `getByTestId`. Nada
-  de selectores frágiles tipo XPath o CSS profundo.
-- Cada test usa el mock backend de `tests/support/mock-backend.js`.
+- Selectors: prefer `getByRole`, `getByLabel`, `getByTestId`. No
+  fragile selectors like XPath or deep CSS.
+- Every test uses the mock backend from `tests/support/mock-backend.js`.
 
-## Manejo de errores
+## Error handling
 
-- En el cliente: `apiRequest` lanza `ApiError(status, code, message)`.
-  Los hooks lo capturan y exponen `{ data, error, isLoading }`.
-- En componentes: muestra fallback (toast / banner / vacío con
-  mensaje), nunca dejes la UI rota silenciosa.
-- Nada de `console.error` para errores esperados — usa el sistema de
-  notificaciones (`src/features/notifications/`).
+- On the client: `apiRequest` throws `ApiError(status, code, message)`.
+  Hooks catch it and expose `{ data, error, isLoading }`.
+- In components: show a fallback (toast / banner / empty state with
+  message), never leave the UI silently broken.
+- No `console.error` for expected errors — use the notifications
+  system (`src/features/notifications/`).
 
-## Comentarios
+## Comments
 
-Por defecto **no** se escriben. Solo cuando explican un *por qué* no
-obvio (workaround de Vite, hack de React 18 strict mode, restricción
-de un browser). Los nombres deben hacer el resto. **Prohibido**:
-comentarios que describen *qué* hace una función, referencias a
-tickets ("added for issue #123"), TODOs sin fecha + autor.
+By default **no** comments. Only when they explain a non-obvious
+*why* (Vite workaround, React 18 strict-mode hack, browser
+restriction). Names must do the rest. **Forbidden**:
+comments that describe *what* a function does, ticket references
+("added for issue #123"), TODOs without date + author.

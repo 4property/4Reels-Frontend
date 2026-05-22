@@ -1,96 +1,95 @@
-# Verificación — Cómo demostrar que el trabajo funciona (`4reels front/`)
+# Verification — How to prove the work works (`4reels front/`)
 
-> Regla de oro: **el agente no dice "funciona", lo demuestra**.
-> Toda feature termina con evidencia ejecutable, no con afirmaciones.
+> Golden rule: **the agent does not say "it works", it proves it**.
+> Every feature ends with executable evidence, not assertions.
 
-## Niveles de verificación
+## Verification levels
 
-### Nivel 1 — Lint + build (obligatorio, siempre)
+### Level 1 — Lint + build (mandatory, always)
 
 ```bash
 npm run lint
 npm run build
 ```
 
-Ambos exit code 0. `init.sh` ya los ejecuta. Si rompen, **para**.
+Both exit code 0. `init.sh` already runs them. If they break, **stop**.
 
-### Nivel 2 — Smoke E2E (obligatorio si la feature toca UI)
+### Level 2 — Smoke E2E (mandatory if the feature touches UI)
 
 ```bash
 npm run test:smoke
 ```
 
-Cubre los flujos críticos. Si añadiste una pestaña o un editor nuevo,
-añade un smoke test que:
+Covers the critical flows. If you added a new tab or editor, add a
+smoke test that:
 
-1. Navega a la nueva ruta.
-2. Realiza la acción principal (crear, editar, publicar, …).
-3. Verifica el resultado en pantalla y en el mock store.
+1. Navigates to the new route.
+2. Performs the main action (create, edit, publish, …).
+3. Verifies the result on screen and in the mock store.
 
-### Nivel 3 — E2E completo (obligatorio antes de cerrar features grandes)
+### Level 3 — Full E2E (mandatory before closing large features)
 
 ```bash
 npm run test:e2e
 ```
 
-Permutaciones, edge cases, validaciones de formularios, errores de red
-simulados.
+Permutations, edge cases, form validations, simulated network errors.
 
-### Nivel 4 — Visual (obligatorio si la feature toca el "look")
+### Level 4 — Visual (mandatory if the feature touches the "look")
 
 ```bash
-npm run test:visual            # corre y compara contra snapshots
-npm run test:visual:update     # acepta las nuevas baselines
+npm run test:visual            # runs and compares against snapshots
+npm run test:visual:update     # accepts the new baselines
 ```
 
-Cuando aceptes una nueva baseline, lo documentas en
-`progress/current.md` con un bullet por captura.
+When you accept a new baseline, document it in
+`progress/current.md` with one bullet per capture.
 
-### Nivel 5 — Smoke manual con dev server (recomendado)
+### Level 5 — Manual smoke with dev server (recommended)
 
 ```bash
 npm run dev
-# abre http://localhost:5173 (o el puerto que use Vite)
-# prueba la feature en un browser real
+# open http://localhost:5173 (or whatever port Vite uses)
+# try the feature in a real browser
 ```
 
-Especialmente útil cuando la feature involucra:
+Especially useful when the feature involves:
 
-- Drag & drop, resizable panels, virtualización.
-- Animaciones, transiciones, scroll behavior.
-- Integración con `localStorage` o `sessionStorage`.
-- Atajos de teclado.
+- Drag & drop, resizable panels, virtualization.
+- Animations, transitions, scroll behavior.
+- Integration with `localStorage` or `sessionStorage`.
+- Keyboard shortcuts.
 
-Si solo ves `npm run test:smoke` verde pero no has tocado el browser,
-**dilo en el informe** ("no manual smoke") — no afirmes "funciona en
-el browser" sin haberlo abierto.
+If you only see `npm run test:smoke` green but you have not touched a
+browser, **say so in the report** ("no manual smoke") — do not assert
+"works in the browser" without having opened it.
 
-## Anti-patrones (no hacer)
+## Anti-patterns (do not do)
 
-- ❌ "He añadido el componente, debería funcionar." → falta test
-  ejecutable.
-- ❌ Test que solo monta el componente y comprueba que no lanza. →
-  tiene que comprobar el resultado (texto en pantalla, llamada al mock
-  store, evento disparado).
-- ❌ Skipear test E2E porque "el componente es trivial". Si está en
-  pantalla, hay un flujo que verificar.
-- ❌ Dejar `test.only(...)` o `test.skip(...)` en el código.
-- ❌ Modificar snapshots visuales sin abrir el browser y confirmar
-  visualmente.
-- ❌ Marcar la feature como `done` sin pasar `./init.sh`.
-- ❌ Cubrir la feature con un mock que devuelve algo que el backend
-  real no podrá devolver. El mock = spec.
+- ❌ "I added the component, it should work." → missing executable
+  test.
+- ❌ A test that only mounts the component and checks it does not
+  throw. → it must check the result (text on screen, call to the
+  mock store, event fired).
+- ❌ Skipping an E2E test because "the component is trivial". If
+  it is on screen, there is a flow to verify.
+- ❌ Leaving `test.only(...)` or `test.skip(...)` in the code.
+- ❌ Modifying visual snapshots without opening the browser and
+  confirming visually.
+- ❌ Marking the feature as `done` without passing `./init.sh`.
+- ❌ Covering the feature with a mock that returns something the
+  real backend will not be able to return. The mock = spec.
 
-## Verificación final antes de cerrar
+## Final verification before closing
 
 ```bash
-./init.sh                     # lint + build verdes
-npm run test:smoke            # smoke verde
-# si tocó UI nueva con permutaciones:
+./init.sh                     # lint + build green
+npm run test:smoke            # smoke green
+# if it touched new UI with permutations:
 npm run test:e2e
-# si tocó visuales:
+# if it touched visuals:
 npm run test:visual
 ```
 
-Si algo está rojo, **no** marques nada como `done`. Anota el bloqueo
-en `progress/current.md` con estado `blocked` en `feature_list.json`.
+If anything is red, **do not** mark anything as `done`. Note the block
+in `progress/current.md` with status `blocked` in `feature_list.json`.

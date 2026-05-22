@@ -1,150 +1,149 @@
-# AGENTS.md — Mapa de navegación para agentes de IA (`/opt/projects/4Reels-Frontend`)
+# AGENTS.md — Navigation map for AI agents (`/opt/projects/4Reels-Frontend`)
 
-> Este archivo es el **punto de entrada** para cualquier agente que
-> trabaje en el frontend de 4Reels. NO es una biblia de reglas: es un
-> **mapa**. Lee solo lo que necesites cuando lo necesites (divulgación
-> progresiva).
+> This file is the **entry point** for any agent working on the 4Reels
+> frontend. It is NOT a bible of rules: it is a **map**. Read only what
+> you need when you need it (progressive disclosure).
 >
-> **Repos en disco:**
-> - Frontend (este): `/opt/projects/4Reels-Frontend`
-> - Backend: `/opt/projects/4Reels-Backend` (corre en :8001 como test;
->   producción legacy es otro repo en :8000 — ver §7).
+> **Repos on disk:**
+> - Frontend (this one): `/opt/projects/4Reels-Frontend`
+> - Backend: `/opt/projects/4Reels-Backend` (runs on :8001 as test;
+>   legacy production is another repo on :8000 — see §7).
 
 ---
 
-## 1. Antes de empezar (obligatorio)
+## 1. Before you start (mandatory)
 
-1. Ejecuta `./init.sh` y verifica que termina sin errores. Si falla,
-   **para** y resuelve el entorno antes de tocar código.
-2. Lee `progress/current.md` para entender en qué estado quedó la
-   última sesión.
-3. Lee `feature_list.json` y elige **una** tarea con estado `pending`.
+1. Run `./init.sh` and verify it finishes without errors. If it
+   fails, **stop** and fix the environment before touching code.
+2. Read `progress/current.md` to understand the state the last
+   session was left in.
+3. Read `feature_list.json` and pick **one** task with status `pending`.
 
-## 2. Mapa del repositorio
+## 2. Repository map
 
-### Arnés (este conjunto de archivos)
+### Harness (this set of files)
 
-| Archivo / carpeta            | Qué contiene                                              | Cuándo leerlo |
+| File / folder                | What it contains                                          | When to read it |
 |------------------------------|-----------------------------------------------------------|---------------|
-| `feature_list.json`          | Lista de tareas con estado                                | Siempre, al empezar |
-| `progress/current.md`        | Estado de la sesión actual                                | Siempre, al empezar |
-| `progress/history.md`        | Bitácora append-only                                      | Si necesitas contexto histórico |
-| `docs/architecture.md`       | Estándar de arquitectura del front                        | Antes de implementar |
-| `docs/conventions.md`        | Estilo JS/JSX, naming, hooks, CSS                         | Antes de escribir código |
-| `docs/verification.md`       | Lint, build, Playwright, smoke                            | Antes de declarar `done` |
-| `CHECKPOINTS.md`             | Criterios objetivos de "estado final correcto"            | Para auto-evaluarte |
-| `.claude/agents/`            | Definiciones de subagentes (leader, implementer, reviewer) | Si orquestas trabajo |
+| `feature_list.json`          | List of tasks with their status                           | Always, on start |
+| `progress/current.md`        | State of the current session                              | Always, on start |
+| `progress/history.md`        | Append-only log                                           | If you need historical context |
+| `docs/architecture.md`       | Frontend architecture standard                            | Before implementing |
+| `docs/conventions.md`        | JS/JSX style, naming, hooks, CSS                          | Before writing code |
+| `docs/verification.md`       | Lint, build, Playwright, smoke                            | Before declaring `done` |
+| `CHECKPOINTS.md`             | Objective criteria for a "correct final state"            | For self-assessment |
+| `.claude/agents/`            | Subagent definitions (leader, implementer, reviewer)      | If you are orchestrating work |
 
-### Documentación del proyecto (autoritativa, anterior al arnés)
+### Project documentation (authoritative, predates the harness)
 
-| Archivo                      | Qué contiene                                              |
+| File                         | What it contains                                          |
 |------------------------------|-----------------------------------------------------------|
-| `ARCHITECTURE.md`            | Capas, layer rules, data flow, cómo añadir una feature.   |
-| `DOCS.md`                    | Producto, páginas, modelo de datos mock, contrato backend. |
-| `README.md` (si existe)      | Setup local.                                              |
-| `.env.example`               | Variables de entorno (`VITE_USE_MOCK`, `VITE_API_URL`).   |
+| `ARCHITECTURE.md`            | Layers, layer rules, data flow, how to add a feature.     |
+| `DOCS.md`                    | Product, pages, mock data model, backend contract.        |
+| `README.md` (if present)     | Local setup.                                              |
+| `.env.example`               | Environment variables (`VITE_USE_MOCK`, `VITE_API_URL`).  |
 
-Si `docs/architecture.md` (arnés) y `ARCHITECTURE.md` o `DOCS.md`
-(proyecto) entran en conflicto, **gana el documento del proyecto**: el
-arnés es un resumen operativo, los documentos del proyecto son la
-fuente de verdad.
+If `docs/architecture.md` (harness) and `ARCHITECTURE.md` or `DOCS.md`
+(project) conflict, **the project document wins**: the harness is an
+operational summary, the project documents are the source of truth.
 
-### Código
+### Code
 
-| Carpeta                      | Qué contiene                                                   |
-|------------------------------|----------------------------------------------------------------|
-| `src/main.jsx`, `src/App.jsx` | Entry + providers.                                            |
+| Folder                       | What it contains                                              |
+|------------------------------|---------------------------------------------------------------|
+| `src/main.jsx`, `src/App.jsx` | Entry + providers.                                           |
 | `src/app/`                   | Shell, topbar, tab router, providers (`ThemeProvider`, `TenantProvider`). |
-| `src/lib/api/client.js`      | Cliente único: hace `fetch(VITE_API_URL)` o llama al mock.     |
-| `src/lib/api/mock/`          | Mock backend (handlers + store). Es la **spec** del backend real. |
-| `src/lib/hooks/`             | Hooks genéricos: `useApi`, `useMutation`, `useLocalStorage`.   |
-| `src/shared/`                | UI primitives sin dependencias de datos (Icon, Cover, Toggle, …). |
-| `src/features/<x>/`          | Una carpeta por dominio (reels, music, social, brand, defaults, automation, admin, notifications). Cada una con `api.js`, `hooks.js`, componentes, `index.js`. |
-| `src/styles/`                | Vanilla CSS, un archivo por responsabilidad.                   |
-| `tests/`                     | Tests Playwright (E2E + smoke + visual).                       |
-| `tests/support/mock-backend.js` | Mock para tests E2E.                                        |
-| `playwright.config.js`       | Config de Playwright.                                          |
-| `vite.config.js`             | Config de Vite.                                                |
-| `eslint.config.js`           | Reglas ESLint.                                                 |
+| `src/lib/api/client.js`      | Single client: does `fetch(VITE_API_URL)` or calls the mock.  |
+| `src/lib/api/mock/`          | Mock backend (handlers + store). It is the **spec** of the real backend. |
+| `src/lib/hooks/`             | Generic hooks: `useApi`, `useMutation`, `useLocalStorage`.    |
+| `src/shared/`                | UI primitives with no data dependencies (Icon, Cover, Toggle, …). |
+| `src/features/<x>/`          | One folder per domain (reels, music, social, brand, defaults, automation, admin, notifications). Each with `api.js`, `hooks.js`, components, `index.js`. |
+| `src/styles/`                | Vanilla CSS, one file per responsibility.                     |
+| `tests/`                     | Playwright tests (E2E + smoke + visual).                      |
+| `tests/support/mock-backend.js` | Mock for E2E tests.                                        |
+| `playwright.config.js`       | Playwright config.                                            |
+| `vite.config.js`             | Vite config.                                                  |
+| `eslint.config.js`           | ESLint rules.                                                 |
 
-## 3. Reglas duras (no negociables)
+## 3. Hard rules (non-negotiable)
 
-Vienen de `ARCHITECTURE.md` del proyecto:
+They come from the project's `ARCHITECTURE.md`:
 
-- **Sin TypeScript.** Vanilla JS/JSX. Si una feature lo requiere, se
-  para y se discute (estado `blocked`).
-- **Sin React Query, sin MSW.** Server state vía `useApi` /
-  `useMutation` de `lib/hooks/`; mock vía `lib/api/mock/` (no MSW).
-- **Vanilla CSS.** Nada de styled-components, Tailwind, CSS-in-JS, etc.
-  Una hoja por responsabilidad en `src/styles/`.
-- **Componentes nunca llaman `fetch` directamente.** Siempre vía hook
-  de feature → api de feature → `lib/api/client.js`.
+- **No TypeScript.** Vanilla JS/JSX. If a feature requires it, stop
+  and discuss (status `blocked`).
+- **No React Query, no MSW.** Server state via `useApi` /
+  `useMutation` from `lib/hooks/`; mock via `lib/api/mock/` (no MSW).
+- **Vanilla CSS.** No styled-components, Tailwind, CSS-in-JS, etc.
+  One sheet per responsibility in `src/styles/`.
+- **Components never call `fetch` directly.** Always via feature
+  hook → feature api → `lib/api/client.js`.
 - **Layer rules:**
-  - `shared/` — pura presentación, sin deps de datos.
-  - `features/<x>/` — puede importar de `shared/`, `lib/`,
+  - `shared/` — pure presentation, no data deps.
+  - `features/<x>/` — may import from `shared/`, `lib/`,
     `app/providers/`.
-  - `app/` — providers + shell, sin lógica de dominio.
-  - `lib/` — base, no importa nada de arriba.
-- **Mock = spec.** Si una feature pide un nuevo endpoint, primero se
-  añade el handler en `lib/api/mock/handlers/` con el shape exacto
-  que el backend tendrá que implementar.
-- **Una sola feature a la vez.**
-- **No declares una tarea `done` sin lint + build + tests verdes.**
-- **Documenta lo que haces** en `progress/current.md` mientras
-  trabajas, no al final.
-- **Deja el repo limpio** antes de cerrar (ver §5).
+  - `app/` — providers + shell, no domain logic.
+  - `lib/` — base, imports nothing from above.
+- **Mock = spec.** If a feature asks for a new endpoint, first add
+  the handler in `lib/api/mock/handlers/` with the exact shape that
+  the backend will have to implement.
+- **One feature at a time.**
+- **Do not declare a task `done` without lint + build + tests green.**
+- **Document what you do** in `progress/current.md` while you work,
+  not at the end.
+- **Leave the repo clean** before closing (see §5).
 
-## 4. Cómo elegir una tarea
+## 4. How to pick a task
 
 ```
-1. Abre feature_list.json
-2. Filtra por status == "pending"
-3. Coge la de menor "id" (o la marcada como prioritaria)
-4. Cambia su status a "in_progress" y guarda
-5. Anota en progress/current.md: feature, hora, plan
+1. Open feature_list.json
+2. Filter by status == "pending"
+3. Pick the one with the lowest "id" (or the one marked as priority)
+4. Change its status to "in_progress" and save
+5. Note in progress/current.md: feature, time, plan
 ```
 
-## 5. Cierre de sesión (lifecycle)
+## 5. Session close (lifecycle)
 
-Antes de terminar:
+Before finishing:
 
-1. Ejecuta `./init.sh` — todo verde.
-2. Si la tarea está acabada y aprobada por el `reviewer`: marca
-   `status: "done"` en `feature_list.json`.
-3. Mueve el resumen de `progress/current.md` al final de
+1. Run `./init.sh` — everything green.
+2. If the task is finished and approved by the `reviewer`: mark
+   `status: "done"` in `feature_list.json`.
+3. Move the summary from `progress/current.md` to the end of
    `progress/history.md`.
-4. Vacía `progress/current.md` dejando solo la plantilla.
-5. Limpia: nada de `console.log` de debug, `*.tmp_*`, `dist/` modificado
-   manualmente, dependencias en `package.json` que no se usen.
-6. Si añadiste un endpoint nuevo: confirma que tiene su handler mock y
-   que está documentado en `DOCS.md` § "Backend contract" como
-   responsabilidad del backend real.
+4. Empty `progress/current.md` leaving only the template.
+5. Clean up: no debug `console.log`, no `*.tmp_*`, no manually
+   modified `dist/`, no unused dependencies in `package.json`.
+6. If you added a new endpoint: confirm it has its mock handler and
+   that it is documented in `DOCS.md` § "Backend contract" as a
+   responsibility of the real backend.
 
-## 6. Si te bloqueas
+## 6. If you get stuck
 
-- Relee la sección relevante de `ARCHITECTURE.md`, `DOCS.md` o `docs/`.
-- Si la herramienta no hace lo que esperas (Vite no recarga, Playwright
-  no encuentra el selector, ESLint da un error que no entiendes), **no
-  inventes un workaround**: documenta el bloqueo en
-  `progress/current.md` con estado `blocked` en `feature_list.json` y
-  para la sesión.
+- Re-read the relevant section of `ARCHITECTURE.md`, `DOCS.md` or `docs/`.
+- If a tool does not behave as expected (Vite does not reload, Playwright
+  cannot find the selector, ESLint throws an error you do not understand),
+  **do not invent a workaround**: document the block in
+  `progress/current.md` with status `blocked` in `feature_list.json` and
+  stop the session.
 
-## 7. Backend al que apunta el frontend
+## 7. Backend the frontend points to
 
-El frontend dev consume el backend en `VITE_MVP_API_URL`. Por defecto en
-este host:
+The dev frontend consumes the backend at `VITE_MVP_API_URL`. By default
+on this host:
 
-| Entorno          | URL                                              | Servicio backend           | Repo backend                      |
-|------------------|--------------------------------------------------|----------------------------|-----------------------------------|
-| Dev local / test | `http://localhost:8001` o `https://4reelsback-test.4property.com` | `reels-test.service` (:8001) | `/opt/projects/4Reels-Backend`    |
-| Producción       | `https://<dominio-prod>` → `:8000`               | `reels.service` (:8000)    | `/opt/reels` (otro repo, **legacy**) |
+| Environment      | URL                                              | Backend service             | Backend repo                       |
+|------------------|--------------------------------------------------|-----------------------------|------------------------------------|
+| Local dev / test | `http://localhost:8001` or `https://4reelsback-test.4property.com` | `reels-test.service` (:8001) | `/opt/projects/4Reels-Backend`    |
+| Production       | `https://<prod-domain>` → `:8000`                | `reels.service` (:8000)     | `/opt/reels` (another repo, **legacy**) |
 
-**OJO:** producción y test corren **dos códigos fuente distintos** — el repo
-`/opt/reels` (branch `ghl` de `4property/4robert`) y el repo refactorizado
-`/opt/projects/4Reels-Backend` no son el mismo. Si validas un cambio de
-front contra :8001 y luego quieres llevarlo a producción, el lado backend
-del cambio (si lo hay) hay que portarlo manualmente.
+**HEADS-UP:** production and test run **two different source codebases** —
+the `/opt/reels` repo (branch `ghl` of `4property/4robert`) and the
+refactored repo `/opt/projects/4Reels-Backend` are not the same. If you
+validate a front change against :8001 and then want to take it to
+production, the backend side of the change (if any) has to be ported
+manually.
 
-Para reiniciar los servicios backend, ver `/opt/projects/4Reels-Backend/AGENTS.md` §7.
-**Claude no debe reiniciar producción (`reels.service`) sin confirmación
-explícita del usuario en el mismo turno.**
+To restart the backend services, see `/opt/projects/4Reels-Backend/AGENTS.md` §7.
+**Claude must not restart production (`reels.service`) without explicit
+user confirmation in the same turn.**
